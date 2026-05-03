@@ -1,0 +1,1264 @@
+using System;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using ME.Core;
+using ME.Data;
+using ME.Models;
+using ME.Services;
+using ME.ViewModels;
+
+namespace ME.Views
+{
+    public partial class TasksView : System.Windows.Controls.UserControl
+    {
+        private TasksViewModel _vm;
+        private DateTime _stripStartDate;
+        private DateTime _selectedDate;
+        private int _visibleDays = 14;
+        private int? _filterTagId;
+        private double _availableWidth = 800;
+
+        // Drag state (matching GoalsView pattern)
+        private bool _isDragging;
+        private Point _dragStart;
+        private Border _draggedBorder;
+        private int _dragSourceIndex;
+        private List<TaskItem> _dragSourceList;
+        private StackPanel _dragPanel;
+        private StackPanel _dragMainPanel;
+        private Border _placeholderBorder;
+
+        public TasksView()
+        {
+            InitializeComponent();
+            _vm = new TasksViewModel();
+            DataContext = _vm;
+            _selectedDate = DateTime.Today;
+            _stripStartDate = DateTime.Today.AddDays(-3);
+            BuildDateStrip();
+            BuildTagFilter();
+            LoadData();
+        }
+
+        private void TasksView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (this.IsVisible) LoadData();
+        }
+
+        private void DateStrip_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            _availableWidth = e.NewSize.Width - 120;
+            int newDays = Math.Max(7, (int)(_availableWidth / 52));
+            if (newDays != _visibleDays)
+            {
+                _visibleDays = newDays;
+                BuildDateStrip();
+            }
+        }
+
+        // ============ TAG FILTER ============
+        private void BuildTagFilter()
+        {
+            TagFilterPanel.Children.Clear();
+            var tagRepo = new TagRepository();
+            var tags = tagRepo.GetAllTags();
+
+            var allBtn = new Button
+            {
+                Content = "全部",
+                Style = (Style)FindResource(_filterTagId == null ? "PrimaryButtonStyle" : "SecondaryButtonStyle"),
+                Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 0, 6, 0),
+                FontSize = 12, Tag = (int?)null
+            };
+            allBtn.Click += TagFilter_Click;
+            TagFilterPanel.Children.Add(allBtn);
+
+            foreach (var tag in tags)
+            {
+                var btn = new Button
+                {
+                    Content = tag.Name,
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
+                    Foreground = Brushes.White,
+                    Style = (Style)FindResource(_filterTagId == tag.Id ? "PrimaryButtonStyle" : "SecondaryButtonStyle"),
+                    Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 0, 6, 0),
+                    FontSize = 12, Tag = (int?)tag.Id
+                };
+                btn.Click += TagFilter_Click;
+                TagFilterPanel.Children.Add(btn);
+            }
+        }
+
+        private void TagFilter_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn)
+            {
+                _filterTagId = (int?)btn.Tag;
+                BuildTagFilter();
+                LoadData();
+            }
+        }
+
+        // ============ DATE STRIP ============
+        private void BuildDateStrip()
+        {
+            DateStrip.Children.Clear();
+            var midDate = _stripStartDate.AddDays(_visibleDays / 2);
+            MonthLabel.Text = midDate.ToString("M月");
+
+            for (int i = 0; i < _visibleDays; i++)
+            {
+                var date = _stripStartDate.AddDays(i);
+                var dayPanel = new StackPanel
+                {
+                    Width = 48, Margin = new Thickness(2, 0, 2, 0),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Cursor = Cursors.Hand, Tag = date
+                };
+
+                var weekdayText = new TextBlock
+                {
+                    Text = GetWeekdayShort(date.DayOfWeek), FontSize = 10,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 2)
+                };
+                weekdayText.Foreground = (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+                    ? new SolidColorBrush(Color.FromRgb(142, 142, 147))
+                    : (SolidColorBrush)FindResource("SecondaryTextBrush");
+                dayPanel.Children.Add(weekdayText);
+
+                var dayBorder = new Border
+                {
+                    Width = 32, Height = 32,
+                    CornerRadius = new CornerRadius(16),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Child = new TextBlock
+                    {
+                        Text = date.Day.ToString(), FontSize = 14,
+                        FontWeight = FontWeights.SemiBold,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+
+                if (date.Date == DateTime.Today && date.Date == _selectedDate.Date)
+                {
+                    dayBorder.Background = (SolidColorBrush)FindResource("PrimaryBrush");
+                    ((TextBlock)dayBorder.Child).Foreground = Brushes.White;
+                }
+                else if (date.Date == DateTime.Today)
+                {
+                    dayBorder.Background = new SolidColorBrush(Color.FromRgb(230, 230, 235));
+                    ((TextBlock)dayBorder.Child).Foreground = (SolidColorBrush)FindResource("TextBrush");
+                }
+                else if (date.Date == _selectedDate.Date)
+                {
+                    dayBorder.Background = (SolidColorBrush)FindResource("PrimaryBrush");
+                    ((TextBlock)dayBorder.Child).Foreground = Brushes.White;
+                }
+                else
+                {
+                    dayBorder.Background = Brushes.Transparent;
+                    ((TextBlock)dayBorder.Child).Foreground = (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+                        ? new SolidColorBrush(Color.FromRgb(142, 142, 147))
+                        : (SolidColorBrush)FindResource("TextBrush");
+                }
+
+                dayPanel.Children.Add(dayBorder);
+                dayPanel.MouseLeftButtonDown += (s, e) =>
+                {
+                    if (s is StackPanel p && p.Tag is DateTime d)
+                    {
+                        _selectedDate = d;
+                        BuildDateStrip();
+                        LoadData();
+                    }
+                };
+                DateStrip.Children.Add(dayPanel);
+            }
+        }
+
+        private string GetWeekdayShort(DayOfWeek dow)
+        {
+            switch (dow)
+            {
+                case DayOfWeek.Monday: return "周一";
+                case DayOfWeek.Tuesday: return "周二";
+                case DayOfWeek.Wednesday: return "周三";
+                case DayOfWeek.Thursday: return "周四";
+                case DayOfWeek.Friday: return "周五";
+                case DayOfWeek.Saturday: return "周六";
+                case DayOfWeek.Sunday: return "周日";
+                default: return "";
+            }
+        }
+
+        private void ScrollLeft_Click(object sender, RoutedEventArgs e) { _stripStartDate = _stripStartDate.AddDays(-7); BuildDateStrip(); }
+        private void ScrollRight_Click(object sender, RoutedEventArgs e) { _stripStartDate = _stripStartDate.AddDays(7); BuildDateStrip(); }
+
+        // ============ LOAD DATA ============
+        public void LoadData()
+        {
+            _vm.ReloadTasks();
+
+            var goalRepo = new GoalRepository();
+            var tagRepo = new TagRepository();
+            var taskService = new TaskService();
+            var taskRepo = new TaskRepository();
+            var allGoals = goalRepo.GetAllGoals();
+            var allTags = tagRepo.GetAllTags();
+            var todayGoalIds = new HashSet<int>();
+            foreach (var goal in allGoals)
+            {
+                if (goal.IsArchived || goal.IsDeleted) continue;
+                bool isToday = false;
+                if (goal.StartDate.HasValue && goal.EndDate.HasValue)
+                    isToday = goal.StartDate.Value.Date <= _selectedDate.Date && goal.EndDate.Value.Date >= _selectedDate.Date;
+                else if (goal.StartDate.HasValue)
+                    isToday = goal.StartDate.Value.Date == _selectedDate.Date;
+                if (isToday) todayGoalIds.Add(goal.Id);
+            }
+
+            // Reset custom recurring task count if date changed
+            foreach (var task in _vm.Tasks)
+            {
+                if (task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom)
+                {
+                    if (task.LastCompletedDate.HasValue && task.LastCompletedDate.Value.Date != _selectedDate.Date)
+                    {
+                        // Date changed, reset count
+                        task.RecurringCurrentCount = 0;
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
+                        taskRepo.UpdateTask(task);
+                    }
+                }
+            }
+
+            // Separate main tasks and subtasks, build tag color cache
+            var mainTasks = new List<TaskItem>();
+            var subtasksMap = new Dictionary<int, List<TaskItem>>();
+            var tagColorMap = new Dictionary<int, string>(); // GoalId -> TagColor
+
+            foreach (var task in _vm.Tasks)
+            {
+                // Tag filter
+                if (_filterTagId.HasValue && task.GoalId.HasValue)
+                {
+                    var goal = allGoals.Find(g => g.Id == task.GoalId.Value);
+                    if (goal == null || goal.TagId != _filterTagId.Value) continue;
+                }
+
+                bool showByDate = false;
+                
+                // For recurring tasks, use the new logic
+                if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+                {
+                    showByDate = taskService.ShouldShowRecurringTaskOnDate(task, _selectedDate);
+                    
+                    // For recurring tasks, reset completion status based on date
+                    if (showByDate)
+                    {
+                        bool isCompletedOnDate = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
+                        // Create a copy with adjusted completion status for display
+                        var displayTask = new TaskItem
+                        {
+                            Id = task.Id,
+                            Title = task.Title,
+                            Description = task.Description,
+                            Type = task.Type,
+                            GoalId = task.GoalId,
+                            ParentTaskId = task.ParentTaskId,
+                            StartDate = task.StartDate,
+                            EndDate = task.EndDate,
+                            IsCompleted = isCompletedOnDate,
+                            CompletedAt = isCompletedOnDate ? task.CompletedAt : null,
+                            IsDeleted = task.IsDeleted,
+                            DeletedAt = task.DeletedAt,
+                            CreatedAt = task.CreatedAt,
+                            UpdatedAt = task.UpdatedAt,
+                            Priority = task.Priority,
+                            RecurringPattern = task.RecurringPattern,
+                            RecurringInterval = task.RecurringInterval,
+                            RecurringDaysOfWeek = task.RecurringDaysOfWeek,
+                            RecurringDayOfMonth = task.RecurringDayOfMonth,
+                            IsLastDayOfMonth = task.IsLastDayOfMonth,
+                            RecurringTimesPerDay = task.RecurringTimesPerDay,
+                            RecurringTimesPerWeek = task.RecurringTimesPerWeek,
+                            RecurringCurrentCount = task.RecurringCurrentCount,
+                            RecurringTargetCount = task.RecurringTargetCount,
+                            IsRecurringCompleted = task.IsRecurringCompleted,
+                            LastCompletedDate = task.LastCompletedDate,
+                            QuantitativeMode = task.QuantitativeMode,
+                            QuantitativeStart = task.QuantitativeStart,
+                            QuantitativeTarget = task.QuantitativeTarget,
+                            QuantitativeCurrent = task.QuantitativeCurrent,
+                            QuantitativeUnit = task.QuantitativeUnit,
+                            QuantitativeDailyMin = task.QuantitativeDailyMin,
+                            CountTowardsParent = task.CountTowardsParent
+                        };
+                        
+                        if (task.ParentTaskId.HasValue)
+                        {
+                            if (!subtasksMap.ContainsKey(task.ParentTaskId.Value))
+                                subtasksMap[task.ParentTaskId.Value] = new List<TaskItem>();
+                            subtasksMap[task.ParentTaskId.Value].Add(displayTask);
+                        }
+                        else
+                        {
+                            mainTasks.Add(displayTask);
+                        }
+                    }
+                }
+                else
+                {
+                    // For non-recurring tasks, use the original logic
+                    if (task.StartDate.HasValue && task.EndDate.HasValue)
+                        showByDate = task.StartDate.Value.Date <= _selectedDate.Date && task.EndDate.Value.Date >= _selectedDate.Date;
+                    else if (task.StartDate.HasValue)
+                        showByDate = task.StartDate.Value.Date == _selectedDate.Date;
+                    else
+                        showByDate = true;
+
+                    if (!showByDate && task.GoalId.HasValue && todayGoalIds.Contains(task.GoalId.Value))
+                        showByDate = true;
+
+                    if (!showByDate) continue;
+
+                    if (task.ParentTaskId.HasValue)
+                    {
+                        if (!subtasksMap.ContainsKey(task.ParentTaskId.Value))
+                            subtasksMap[task.ParentTaskId.Value] = new List<TaskItem>();
+                        subtasksMap[task.ParentTaskId.Value].Add(task);
+                    }
+                    else
+                    {
+                        mainTasks.Add(task);
+                    }
+                }
+
+                // Cache tag color for goal
+                if (showByDate && task.GoalId.HasValue && !tagColorMap.ContainsKey(task.GoalId.Value))
+                {
+                    var goal = allGoals.Find(g => g.Id == task.GoalId.Value);
+                    if (goal != null && goal.TagId.HasValue)
+                    {
+                        var tag = allTags.Find(t => t.Id == goal.TagId.Value);
+                        if (tag != null) tagColorMap[task.GoalId.Value] = tag.Color;
+                    }
+                }
+            }
+
+            // Sort main tasks by Priority (descending, matching GoalsView SortOrder pattern)
+            mainTasks.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+
+            var incomplete = new List<TaskItem>();
+            var completed = new List<TaskItem>();
+            foreach (var t in mainTasks)
+            {
+                if (t.IsCompleted) completed.Add(t);
+                else incomplete.Add(t);
+            }
+
+            // Build tree panels
+            BuildTaskTree(IncompleteTasksPanel, incomplete, subtasksMap, tagColorMap, false);
+            BuildTaskTree(CompletedTasksPanel, completed, subtasksMap, tagColorMap, true);
+            LoadTodayGoals(subtasksMap, tagColorMap);
+        }
+
+        // ============ HELPER: Get tag color for a task ============
+        private string GetTagColorForTask(TaskItem task, Dictionary<int, string> tagColorMap)
+        {
+            if (task.GoalId.HasValue && tagColorMap.ContainsKey(task.GoalId.Value))
+                return tagColorMap[task.GoalId.Value];
+            return null;
+        }
+
+        // ============ HELPER: Get tag name for a task ============
+        private string GetTagNameForTask(TaskItem task)
+        {
+            if (task.GoalId.HasValue)
+            {
+                var goalRepo = new GoalRepository();
+                var goal = goalRepo.GetAllGoals().Find(g => g.Id == task.GoalId.Value);
+                if (goal != null && goal.TagId.HasValue)
+                {
+                    var tag = new TagRepository().GetAllTags().Find(t => t.Id == goal.TagId.Value);
+                    if (tag != null) return tag.Name;
+                }
+            }
+            return null;
+        }
+
+        private void BuildTaskTree(StackPanel panel, List<TaskItem> mainTasks, Dictionary<int, List<TaskItem>> subtasksMap, Dictionary<int, string> tagColorMap, bool isCompleted)
+        {
+            panel.Children.Clear();
+
+            foreach (var task in mainTasks)
+            {
+                var wrapper = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+
+                string tagColor = GetTagColorForTask(task, tagColorMap);
+                string tagName = GetTagNameForTask(task);
+
+                // Main task card (matching GoalsView style)
+                var card = CreateTaskCard(task, isCompleted, tagColor, tagName);
+                SetupDragDrop(card, task, mainTasks, panel);
+                wrapper.Children.Add(card);
+
+                // Subtasks (matching GoalsView tree structure)
+                if (subtasksMap.ContainsKey(task.Id))
+                {
+                    var subtasks = subtasksMap[task.Id];
+                    var subtaskExpander = new Expander
+                    {
+                        IsExpanded = true,
+                        Margin = new Thickness(24, 0, 0, 0),
+                        Header = new TextBlock
+                        {
+                            Text = $"子任务 ({subtasks.Count})",
+                            FontSize = 11,
+                            Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
+                        }
+                    };
+                    var subtaskPanel = new StackPanel();
+                    foreach (var sub in subtasks)
+                    {
+                        // Subtask uses parent task's tag color
+                        subtaskPanel.Children.Add(CreateSubtaskCard(sub, tagColor));
+                    }
+                    subtaskExpander.Content = subtaskPanel;
+                    wrapper.Children.Add(subtaskExpander);
+                }
+
+                panel.Children.Add(wrapper);
+            }
+        }
+
+        private Border CreateTaskCard(TaskItem task, bool isCompleted, string tagColor, string tagName)
+        {
+            var card = new Border
+            {
+                Style = (Style)FindResource("CardStyle"),
+                Cursor = isCompleted ? Cursors.Hand : Cursors.SizeAll,
+                Tag = task
+            };
+
+            var progressColor = string.IsNullOrEmpty(tagColor) ? (SolidColorBrush)FindResource("PrimaryBrush")
+                : new SolidColorBrush((Color)ColorConverter.ConvertFromString(tagColor));
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // Completion circle (matching GoalsView)
+            bool isQuant = task.Type == TaskType.Quantitative && task.QuantitativeTarget.HasValue && task.QuantitativeTarget > 0;
+            bool isCustomRecurring = task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1;
+            var circle = new Border
+            {
+                Width = 24, Height = 24,
+                CornerRadius = isQuant ? new CornerRadius(4) : new CornerRadius(12),
+                BorderThickness = new Thickness(2),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 12, 0),
+                Cursor = Cursors.Hand,
+                Background = isQuant
+                    ? (isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : progressColor)
+                    : (isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : Brushes.Transparent),
+                BorderBrush = isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush")
+                    : (SolidColorBrush)FindResource("BorderBrush"),
+                Child = new TextBlock
+                {
+                    Text = isCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{task.RecurringCurrentCount ?? 0}" : "")),
+                    Foreground = Brushes.White,
+                    FontSize = isCompleted ? 12 : 14,
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            circle.Tag = task;
+            circle.MouseLeftButtonDown += (s, e) => { CompleteCircle_Click(s, e); e.Handled = true; };
+            Grid.SetColumn(circle, 0);
+            grid.Children.Add(circle);
+
+            // Text area (matching GoalsView layout)
+            var textPanel = new StackPanel { IsHitTestVisible = false };
+
+            // Tag badge + Name + Expired label
+            var namePanel = new StackPanel { Orientation = Orientation.Horizontal };
+            if (!string.IsNullOrEmpty(tagName))
+            {
+                var tagBadge = new Border
+                {
+                    CornerRadius = new CornerRadius(4), Padding = new Thickness(6, 2, 6, 2),
+                    Margin = new Thickness(0, 0, 8, 0),
+                    Background = new SolidColorBrush(string.IsNullOrEmpty(tagColor)
+                        ? Color.FromRgb(0, 122, 255)
+                        : (Color)ColorConverter.ConvertFromString(tagColor)),
+                    Child = new TextBlock { Text = tagName, FontSize = 10, Foreground = Brushes.White }
+                };
+                namePanel.Children.Add(tagBadge);
+            }
+            namePanel.Children.Add(new TextBlock
+            {
+                Text = task.Title, FontSize = 16, FontWeight = FontWeights.SemiBold,
+                Foreground = isCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
+                TextDecorations = isCompleted ? TextDecorations.Strikethrough : null
+            });
+            textPanel.Children.Add(namePanel);
+
+            // Expired label
+            bool isExpired = !isCompleted && task.EndDate.HasValue && task.EndDate.Value.Date < DateTime.Today;
+            if (isExpired)
+            {
+                textPanel.Children.Add(new TextBlock
+                {
+                    Text = "任务已过期", FontSize = 10, FontWeight = FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(255, 59, 48)),
+                    Margin = new Thickness(0, 2, 0, 0)
+                });
+            }
+
+            if (!isCompleted)
+            {
+                if (!string.IsNullOrEmpty(task.Description))
+                {
+                    textPanel.Children.Add(new TextBlock
+                    {
+                        Text = task.Description, FontSize = 11,
+                        Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
+                        TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0),
+                        MaxHeight = 35, TextTrimming = TextTrimming.CharacterEllipsis
+                    });
+                }
+
+                // Progress + time frame (matching GoalsView info panel)
+                var infoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+                infoPanel.Children.Add(new TextBlock { Text = "进度:", FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
+                if (isQuant)
+                {
+                    var pct = task.QuantitativeTarget > 0
+                        ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0;
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"{pct:F0}%", FontSize = 10, FontWeight = FontWeights.SemiBold,
+                        Foreground = progressColor, Margin = new Thickness(3, 0, 8, 0)
+                    });
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"{task.QuantitativeCurrent ?? 0:F0}/{task.QuantitativeTarget.Value:F0}",
+                        FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
+                    });
+                }
+                else if (isCustomRecurring)
+                {
+                    var current = task.RecurringCurrentCount ?? 0;
+                    var target = task.RecurringTargetCount ?? 1;
+                    var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"{pct:F0}%", FontSize = 10, FontWeight = FontWeights.SemiBold,
+                        Foreground = progressColor, Margin = new Thickness(3, 0, 8, 0)
+                    });
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"{current}/{target}",
+                        FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
+                    });
+                }
+                else
+                {
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = task.IsCompleted ? "100%" : "0%", FontSize = 10, FontWeight = FontWeights.SemiBold,
+                        Foreground = progressColor, Margin = new Thickness(3, 0, 8, 0)
+                    });
+                }
+                var typeText = task.Type == TaskType.Recurring ? "循环" : task.Type == TaskType.Quantitative ? "量化" : "单次";
+                infoPanel.Children.Add(new TextBlock { Text = typeText, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
+                if (task.EndDate.HasValue)
+                {
+                    var deadlineColor = isExpired 
+                        ? new SolidColorBrush(Color.FromRgb(255, 59, 48))
+                        : (SolidColorBrush)FindResource("SecondaryTextBrush");
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $" 截止:{task.EndDate.Value:yyyy/MM/dd}", FontSize = 10,
+                        Foreground = deadlineColor, Margin = new Thickness(8, 0, 0, 0)
+                    });
+                }
+                textPanel.Children.Add(infoPanel);
+
+                // Progress bar (matching GoalsView)
+                var pbValue = isQuant
+                    ? (task.QuantitativeTarget > 0 ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0)
+                    : (isCustomRecurring
+                        ? (task.RecurringTargetCount > 0 ? Math.Min((double)(task.RecurringCurrentCount ?? 0) / task.RecurringTargetCount.Value * 100, 100) : 0)
+                        : (task.IsCompleted ? 100 : 0));
+                var pb = new ProgressBar
+                {
+                    Value = pbValue, Maximum = 100, Height = 8,
+                    Margin = new Thickness(0, 5, 0, 0),
+                    Background = (SolidColorBrush)FindResource("BackgroundBrush"),
+                    Foreground = progressColor
+                };
+                textPanel.Children.Add(pb);
+            }
+
+            Grid.SetColumn(textPanel, 1);
+            grid.Children.Add(textPanel);
+
+            // Buttons (matching GoalsView)
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            btnPanel.Children.Add(CreateTaskButton("编辑", EditTask_Click, task));
+            btnPanel.Children.Add(CreateTaskButton("子任务", AddSubtaskToTask_Click, task));
+            btnPanel.Children.Add(CreateTaskButton("删除", DeleteTask_Click, task));
+            Grid.SetColumn(btnPanel, 2);
+            grid.Children.Add(btnPanel);
+
+            card.Child = grid;
+            return card;
+        }
+
+        private Border CreateSubtaskCard(TaskItem task, string tagColor)
+        {
+            var card = new Border
+            {
+                Style = (Style)FindResource("CardStyle"),
+                Padding = new Thickness(12, 8, 12, 8),
+                Margin = new Thickness(0, 0, 0, 6),
+                Cursor = Cursors.Hand,
+                Tag = task
+            };
+
+            var progressColor = string.IsNullOrEmpty(tagColor) ? (SolidColorBrush)FindResource("PrimaryBrush")
+                : new SolidColorBrush((Color)ColorConverter.ConvertFromString(tagColor));
+
+            bool isCustomRecurring = task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1;
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // Completion circle
+            var circle = new Border
+            {
+                Width = 18, Height = 18,
+                CornerRadius = task.Type == TaskType.Quantitative ? new CornerRadius(3) : new CornerRadius(9),
+                BorderThickness = new Thickness(1.5), VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0), Cursor = Cursors.Hand,
+                Background = task.Type == TaskType.Quantitative ? progressColor : Brushes.Transparent,
+                BorderBrush = task.IsCompleted ? progressColor : (SolidColorBrush)FindResource("BorderBrush"),
+                Child = new TextBlock
+                {
+                    Text = task.IsCompleted ? "✓" : (task.Type == TaskType.Quantitative ? "+" : (isCustomRecurring ? $"{task.RecurringCurrentCount ?? 0}" : "")),
+                    Foreground = Brushes.White, FontSize = task.IsCompleted ? 8 : 10, FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            circle.Tag = task;
+            circle.MouseLeftButtonDown += (s, e) => { SubtaskCircle_Click(s, e); e.Handled = true; };
+            Grid.SetColumn(circle, 0);
+            grid.Children.Add(circle);
+
+            // Text
+            var textPanel = new StackPanel { IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center };
+            textPanel.Children.Add(new TextBlock
+            {
+                Text = task.Title, FontSize = 12,
+                Foreground = task.IsCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
+                TextDecorations = task.IsCompleted ? TextDecorations.Strikethrough : null
+            });
+
+            // Custom recurring progress for subtask
+            if (isCustomRecurring)
+            {
+                var current = task.RecurringCurrentCount ?? 0;
+                var target = task.RecurringTargetCount ?? 1;
+                var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
+                
+                var pb = new ProgressBar
+                {
+                    Maximum = 100, Height = 4,
+                    Margin = new Thickness(0, 4, 120, 0),
+                    Background = (SolidColorBrush)FindResource("BackgroundBrush"),
+                    Foreground = progressColor,
+                    Value = pct
+                };
+                textPanel.Children.Add(pb);
+
+                textPanel.Children.Add(new TextBlock
+                {
+                    Text = $"{current}/{target}",
+                    FontSize = 9, FontWeight = FontWeights.SemiBold,
+                    Foreground = progressColor,
+                    Margin = new Thickness(0, 3, 0, 0)
+                });
+            }
+            // Quantitative progress bar for subtask (using parent task's tag color)
+            else if (task.Type == TaskType.Quantitative && task.QuantitativeTarget.HasValue)
+            {
+                var pb = new ProgressBar
+                {
+                    Maximum = 100, Height = 4,
+                    Margin = new Thickness(0, 4, 120, 0),
+                    Background = (SolidColorBrush)FindResource("BackgroundBrush"),
+                    Foreground = progressColor,
+                    Value = task.QuantitativeTarget > 0
+                        ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0
+                };
+                textPanel.Children.Add(pb);
+
+                textPanel.Children.Add(new TextBlock
+                {
+                    Text = $"{task.QuantitativeCurrent ?? 0:F0}/{task.QuantitativeTarget.Value:F0}",
+                    FontSize = 9, FontWeight = FontWeights.SemiBold,
+                    Foreground = progressColor,
+                    Margin = new Thickness(0, 3, 0, 0)
+                });
+            }
+
+            Grid.SetColumn(textPanel, 1);
+            grid.Children.Add(textPanel);
+
+            // Edit/Delete buttons
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            btnPanel.Children.Add(CreateTaskButton("编辑", EditTask_Click, task));
+            btnPanel.Children.Add(CreateTaskButton("删除", DeleteTask_Click, task));
+            Grid.SetColumn(btnPanel, 2);
+            grid.Children.Add(btnPanel);
+
+            card.Child = grid;
+            return card;
+        }
+
+        private Button CreateTaskButton(string content, RoutedEventHandler handler, TaskItem task)
+        {
+            var btn = new Button
+            {
+                Content = content,
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+                Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 4, 0),
+                FontSize = 11, Tag = task
+            };
+            btn.Click += handler;
+            return btn;
+        }
+
+        // ============ DRAG AND DROP (matching GoalsView pattern) ============
+        private void SetupDragDrop(Border card, TaskItem task, List<TaskItem> sourceList, StackPanel mainPanel)
+        {
+            card.PreviewMouseLeftButtonDown += (s, e) =>
+            {
+                var source = e.OriginalSource as DependencyObject;
+                while (source != null)
+                {
+                    if (source is Button || source is Border b && b.Cursor == Cursors.Hand)
+                        return;
+                    source = VisualTreeHelper.GetParent(source);
+                }
+                _dragStart = e.GetPosition(null);
+                _draggedBorder = card;
+                _dragSourceList = sourceList;
+                _dragSourceIndex = sourceList.IndexOf(task);
+                _dragPanel = VisualTreeHelper.GetParent(card) as StackPanel;
+                _dragMainPanel = mainPanel;
+            };
+
+            card.PreviewMouseMove += (s, e) =>
+            {
+                if (e.LeftButton != MouseButtonState.Pressed || _draggedBorder == null) return;
+                var pos = e.GetPosition(null);
+                var diff = pos - _dragStart;
+
+                if (!_isDragging && Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    _isDragging = true;
+                    _draggedBorder.Opacity = 0.5;
+                    _draggedBorder.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        BlurRadius = 10, ShadowDepth = 2, Opacity = 0.3, Color = Colors.Black
+                    };
+                    Mouse.Capture(_draggedBorder);
+
+                    _placeholderBorder = new Border
+                    {
+                        Style = (Style)FindResource("CardStyle"),
+                        Height = _draggedBorder.ActualHeight, Opacity = 0.3,
+                        Margin = new Thickness(0, 0, 0, 12),
+                        Background = (SolidColorBrush)FindResource("PrimaryBrush"),
+                        IsHitTestVisible = false
+                    };
+                    if (_dragMainPanel != null && _dragPanel != null)
+                    {
+                        int srcIdx = _dragMainPanel.Children.IndexOf(_dragPanel);
+                        if (srcIdx >= 0)
+                            _dragMainPanel.Children.Insert(srcIdx + 1, _placeholderBorder);
+                    }
+                }
+
+                if (_isDragging && _dragMainPanel != null)
+                {
+                    bool hadPlaceholder = _dragMainPanel.Children.Contains(_placeholderBorder);
+                    if (hadPlaceholder) _dragMainPanel.Children.Remove(_placeholderBorder);
+
+                    var mousePos = e.GetPosition(_dragMainPanel);
+                    int dropIndex = 0;
+                    for (int i = 0; i < _dragMainPanel.Children.Count; i++)
+                    {
+                        var child = _dragMainPanel.Children[i] as FrameworkElement;
+                        if (child == null) continue;
+                        var transform = child.TransformToAncestor(_dragMainPanel);
+                        var childPos = transform.Transform(new Point(0, 0));
+                        if (mousePos.Y < childPos.Y + child.ActualHeight / 2)
+                        {
+                            dropIndex = i;
+                            break;
+                        }
+                        dropIndex = i + 1;
+                    }
+
+                    int insertIndex = Math.Min(dropIndex, _dragMainPanel.Children.Count);
+                    if (insertIndex >= 0)
+                        _dragMainPanel.Children.Insert(insertIndex, _placeholderBorder);
+                }
+            };
+
+            card.PreviewMouseLeftButtonUp += (s, e) =>
+            {
+                if (_isDragging && _draggedBorder != null)
+                {
+                    _draggedBorder.Opacity = 1.0;
+                    _draggedBorder.Effect = null;
+                    Mouse.Capture(null);
+
+                    if (_placeholderBorder != null && _dragMainPanel != null && _dragMainPanel.Children.Contains(_placeholderBorder))
+                        _dragMainPanel.Children.Remove(_placeholderBorder);
+
+                    var mousePos = e.GetPosition(_dragMainPanel);
+                    int dropIndex = 0;
+                    for (int i = 0; i < _dragMainPanel.Children.Count; i++)
+                    {
+                        var child = _dragMainPanel.Children[i] as FrameworkElement;
+                        if (child == null) continue;
+                        var transform = child.TransformToAncestor(_dragMainPanel);
+                        var childPos = transform.Transform(new Point(0, 0));
+                        if (mousePos.Y < childPos.Y + child.ActualHeight / 2)
+                        {
+                            dropIndex = i;
+                            break;
+                        }
+                        dropIndex = i + 1;
+                    }
+
+                    if (dropIndex != _dragSourceIndex)
+                    {
+                        var item = _dragSourceList[_dragSourceIndex];
+                        _dragSourceList.RemoveAt(_dragSourceIndex);
+                        if (dropIndex > _dragSourceIndex) dropIndex--;
+                        _dragSourceList.Insert(dropIndex, item);
+
+                        var repo = new TaskRepository();
+                        for (int i = 0; i < _dragSourceList.Count; i++)
+                        {
+                            _dragSourceList[i].Priority = _dragSourceList.Count - i;
+                            repo.UpdateTask(_dragSourceList[i]);
+                        }
+                        LoadData();
+                    }
+                    else
+                    {
+                        _placeholderBorder = null;
+                    }
+                }
+                _isDragging = false;
+                _draggedBorder = null;
+                _dragPanel = null;
+                _dragMainPanel = null;
+            };
+        }
+
+        // ============ TODAY GOALS ============
+        private void LoadTodayGoals(Dictionary<int, List<TaskItem>> subtasksMap, Dictionary<int, string> tagColorMap)
+        {
+            var goalRepo = new GoalRepository();
+            var tagRepo = new TagRepository();
+            var taskRepo = new TaskRepository();
+            var allGoals = goalRepo.GetAllGoals();
+            var tags = tagRepo.GetAllTags();
+            var allTasks = taskRepo.GetAllTasks();
+            var todayGoals = new List<Goal>();
+
+            foreach (var goal in allGoals)
+            {
+                if (goal.IsArchived || goal.IsDeleted) continue;
+                bool show = false;
+                if (goal.StartDate.HasValue && goal.EndDate.HasValue)
+                    show = goal.StartDate.Value.Date <= DateTime.Today && goal.EndDate.Value.Date >= DateTime.Today;
+                else if (goal.StartDate.HasValue)
+                    show = goal.StartDate.Value.Date == DateTime.Today;
+                if (show)
+                {
+                    if (goal.TagId.HasValue)
+                    {
+                        var tag = tags.Find(t => t.Id == goal.TagId.Value);
+                        if (tag != null) { goal.TagColor = tag.Color; goal.TagName = tag.Name; }
+                    }
+                    todayGoals.Add(goal);
+                }
+            }
+
+            TodayGoalsSection.Visibility = todayGoals.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            TodayGoalsPanel.Children.Clear();
+
+            foreach (var goal in todayGoals)
+            {
+                var goalWrapper = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
+
+                // Goal header
+                var goalHeader = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+                var dotColor = string.IsNullOrEmpty(goal.TagColor) ? (SolidColorBrush)FindResource("PrimaryBrush")
+                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString(goal.TagColor));
+                goalHeader.Children.Add(new Border
+                {
+                    Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
+                    Background = dotColor, VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
+                });
+                goalHeader.Children.Add(new TextBlock
+                {
+                    Text = goal.Name, FontSize = 13, FontWeight = FontWeights.SemiBold,
+                    Foreground = (SolidColorBrush)FindResource("TextBrush")
+                });
+                goalWrapper.Children.Add(goalHeader);
+
+                // Tasks under this goal
+                var goalTasks = allTasks.FindAll(t => t.GoalId == goal.Id && !t.IsDeleted && !t.ParentTaskId.HasValue);
+                if (goalTasks.Count > 0)
+                {
+                    foreach (var task in goalTasks)
+                    {
+                        var taskPanel = new StackPanel { Margin = new Thickness(16, 0, 0, 4) };
+
+                        // Task row
+                        var taskRow = new StackPanel { Orientation = Orientation.Horizontal };
+                        taskRow.Children.Add(new TextBlock
+                        {
+                            Text = task.IsCompleted ? "✓ " : "○ ",
+                            FontSize = 11,
+                            Foreground = task.IsCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : (SolidColorBrush)FindResource("SecondaryTextBrush")
+                        });
+                        taskRow.Children.Add(new TextBlock
+                        {
+                            Text = task.Title, FontSize = 11,
+                            Foreground = task.IsCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
+                            TextDecorations = task.IsCompleted ? TextDecorations.Strikethrough : null
+                        });
+                        taskPanel.Children.Add(taskRow);
+
+                        // Subtasks under this task
+                        if (subtasksMap.ContainsKey(task.Id))
+                        {
+                            foreach (var sub in subtasksMap[task.Id])
+                            {
+                                var subRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(24, 2, 0, 0) };
+                                subRow.Children.Add(new TextBlock
+                                {
+                                    Text = sub.IsCompleted ? "✓ " : "○ ",
+                                    FontSize = 10,
+                                    Foreground = sub.IsCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : (SolidColorBrush)FindResource("SecondaryTextBrush")
+                                });
+                                subRow.Children.Add(new TextBlock
+                                {
+                                    Text = sub.Title, FontSize = 10,
+                                    Foreground = sub.IsCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
+                                    TextDecorations = sub.IsCompleted ? TextDecorations.Strikethrough : null
+                                });
+                                taskPanel.Children.Add(subRow);
+                            }
+                        }
+
+                        goalWrapper.Children.Add(taskPanel);
+                    }
+                }
+
+                TodayGoalsPanel.Children.Add(goalWrapper);
+            }
+        }
+
+        // ============ EVENT HANDLERS ============
+        private void CompleteCircle_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement fe)
+            {
+                var task = fe.Tag as TaskItem;
+                if (task != null) HandleTaskCompletion(task);
+            }
+        }
+
+        private void SubtaskCircle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is TaskItem task)
+            {
+                HandleTaskCompletion(task);
+            }
+        }
+
+        private void HandleTaskCompletion(TaskItem task)
+        {
+            if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
+            {
+                var dialog = new QuantitativeInputDialog(task) { Owner = Window.GetWindow(this) };
+                if (dialog.ShowDialog() == true)
+                {
+                    var repo = new TaskRepository();
+                    var oldValue = task.QuantitativeCurrent ?? 0;
+                    task.QuantitativeCurrent = dialog.NewValue;
+                    if (task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value)
+                    {
+                        task.IsCompleted = true;
+                        task.CompletedAt = DateTime.Now;
+                    }
+                    repo.UpdateTask(task);
+
+                    if (task.CountTowardsParent)
+                    {
+                        if (task.ParentTaskId.HasValue)
+                            SyncParentTaskProgress(task.ParentTaskId.Value, task.QuantitativeCurrent.Value - oldValue, repo);
+
+                        if (task.GoalId.HasValue)
+                            RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo);
+                    }
+
+                    SoundService.PlayCompletionSound();
+                    LoadData();
+                }
+                return;
+            }
+
+            var repo2 = new TaskRepository();
+            var taskService = new TaskService();
+            
+            // For recurring tasks, handle completion differently
+            if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+            {
+                // For custom recurring tasks with multiple times per day
+                if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
+                {
+                    // Get the actual task from repository to update
+                    var actualTask = repo2.GetTaskById(task.Id);
+                    if (actualTask == null) return;
+                    
+                    // Check if completed on this date
+                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(actualTask, _selectedDate);
+                    if (isCompletedToday)
+                    {
+                        // Already completed for today, do nothing
+                        return;
+                    }
+                    
+                    // Increment count
+                    actualTask.RecurringCurrentCount = (actualTask.RecurringCurrentCount ?? 0) + 1;
+                    
+                    // Check if reached target
+                    if (actualTask.RecurringCurrentCount >= actualTask.RecurringTargetCount)
+                    {
+                        actualTask.IsCompleted = true;
+                        actualTask.CompletedAt = DateTime.Now;
+                        actualTask.LastCompletedDate = _selectedDate;
+                    }
+                    
+                    repo2.UpdateTask(actualTask);
+                }
+                else
+                {
+                    // Toggle completion for today
+                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
+                    if (isCompletedToday)
+                    {
+                        // Uncomplete for today
+                        task.LastCompletedDate = null;
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
+                    }
+                    else
+                    {
+                        // Complete for today
+                        task.LastCompletedDate = _selectedDate;
+                        task.IsCompleted = true;
+                        task.CompletedAt = DateTime.Now;
+                    }
+                    repo2.UpdateTask(task);
+                }
+            }
+            else
+            {
+                // For non-recurring tasks, toggle completion normally
+                task.IsCompleted = !task.IsCompleted;
+                task.CompletedAt = task.IsCompleted ? DateTime.Now : (DateTime?)null;
+                repo2.UpdateTask(task);
+            }
+
+            if (task.GoalId.HasValue)
+                RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo2);
+
+            SoundService.PlayCompletionSound();
+            
+            // Notify dashboard to refresh
+            EventAggregator.Instance.Publish("TaskCompleted");
+            
+            LoadData();
+        }
+
+        private void SyncParentTaskProgress(int parentTaskId, double delta, TaskRepository repo)
+        {
+            var allTasks = repo.GetAllTasks();
+            var parent = allTasks.Find(t => t.Id == parentTaskId && !t.IsDeleted);
+            if (parent != null && parent.Type == TaskType.Quantitative)
+            {
+                parent.QuantitativeCurrent = (parent.QuantitativeCurrent ?? 0) + delta;
+                if (parent.QuantitativeTarget.HasValue && parent.QuantitativeCurrent >= parent.QuantitativeTarget.Value)
+                {
+                    parent.IsCompleted = true;
+                    parent.CompletedAt = DateTime.Now;
+                }
+                repo.UpdateTask(parent);
+
+                if (parent.GoalId.HasValue)
+                    RecalcGoalProgressFromSubtasks(parent.GoalId.Value, repo);
+            }
+        }
+
+        private void RecalcGoalProgressFromSubtasks(int goalId, TaskRepository repo)
+        {
+            var goalRepo = new GoalRepository();
+            var goal = goalRepo.GetAllGoals().Find(g => g.Id == goalId && !g.IsDeleted);
+            if (goal == null) return;
+
+            var allTasks = repo.GetTasksByGoalId(goalId);
+
+            if (goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget > 0)
+            {
+                double total = 0;
+                foreach (var t in allTasks)
+                {
+                    if (!t.IsDeleted && t.CountTowardsParent && t.Type == TaskType.Quantitative)
+                        total += t.QuantitativeCurrent ?? 0;
+                }
+                goal.QuantitativeCurrent = total;
+                goal.Progress = Math.Min(total / goal.QuantitativeTarget.Value * 100, 100);
+                if (goal.Progress >= 100)
+                {
+                    goal.IsArchived = true;
+                    goal.Progress = 100;
+                }
+            }
+            else
+            {
+                if (allTasks.Count == 0) return;
+                int completed = 0;
+                foreach (var t in allTasks)
+                {
+                    if (t.IsCompleted) completed++;
+                }
+                goal.Progress = (double)completed / allTasks.Count * 100;
+                if (goal.Progress >= 100)
+                {
+                    goal.IsArchived = true;
+                    goal.Progress = 100;
+                }
+            }
+
+            goalRepo.UpdateGoal(goal);
+        }
+
+        private void AddTask_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new TaskEditDialog { Owner = Window.GetWindow(this) };
+            if (dialog.ShowDialog() == true && dialog.ResultTask != null)
+            {
+                var repo = new TaskRepository();
+                var id = repo.InsertTask(dialog.ResultTask);
+                dialog.ResultTask.Id = id;
+                LoadData();
+            }
+        }
+
+        private void AddSubtaskToTask_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is TaskItem parentTask)
+            {
+                var dialog = new TaskEditDialog(isSubtaskMode: true) { Owner = Window.GetWindow(this), Title = "添加子任务" };
+                if (dialog.ShowDialog() == true && dialog.ResultTask != null)
+                {
+                    dialog.ResultTask.ParentTaskId = parentTask.Id;
+                    dialog.ResultTask.GoalId = parentTask.GoalId;
+                    var repo = new TaskRepository();
+                    var id = repo.InsertTask(dialog.ResultTask);
+                    dialog.ResultTask.Id = id;
+
+                    if (dialog.ResultTask.CountTowardsParent && parentTask.GoalId.HasValue)
+                        RecalcGoalProgressFromSubtasks(parentTask.GoalId.Value, repo);
+
+                    LoadData();
+                }
+            }
+        }
+
+        private void EditTask_Click(object sender, RoutedEventArgs e)
+        {
+            TaskItem task = null;
+            if (sender is FrameworkElement fe)
+            {
+                task = fe.Tag as TaskItem;
+                if (task == null && fe.DataContext is TaskItem dt) task = dt;
+            }
+            if (task != null)
+            {
+                var dialog = new TaskEditDialog(task) { Owner = Window.GetWindow(this) };
+                if (dialog.ShowDialog() == true && dialog.ResultTask != null)
+                {
+                    dialog.ResultTask.Id = task.Id;
+                    var repo = new TaskRepository();
+                    repo.UpdateTask(dialog.ResultTask);
+                    dialog.PersistSubtasks();
+                    LoadData();
+                }
+            }
+        }
+
+        private void DeleteTask_Click(object sender, RoutedEventArgs e)
+        {
+            TaskItem task = null;
+            if (sender is FrameworkElement fe)
+            {
+                task = fe.Tag as TaskItem;
+                if (task == null && fe.DataContext is TaskItem dt) task = dt;
+            }
+            if (task != null)
+            {
+                var repo = new TaskRepository();
+
+                if (task.CountTowardsParent && task.ParentTaskId.HasValue)
+                {
+                    var delta = -(task.QuantitativeCurrent ?? 0);
+                    SyncParentTaskProgress(task.ParentTaskId.Value, delta, repo);
+                }
+
+                repo.SoftDeleteTask(task.Id);
+
+                if (task.GoalId.HasValue)
+                    RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo);
+
+                LoadData();
+            }
+        }
+    }
+}

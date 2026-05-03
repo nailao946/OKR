@@ -1,0 +1,131 @@
+<UserControl x:Class="ME.Views.CalendarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             IsVisibleChanged="CalendarView_IsVisibleChanged">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="280" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Calendar -->
+        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+            <DockPanel>
+                <!-- Month Navigation -->
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+                    <Button x:Name="PrevMonthBtn" Content="◀" Click="PrevMonth_Click"
+                            Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" DockPanel.Dock="Left" />
+                    <Button x:Name="NextMonthBtn" Content="▶" Click="NextMonth_Click"
+                            Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" DockPanel.Dock="Right" />
+                    <TextBlock x:Name="MonthTitle" FontSize="18" FontWeight="Bold"
+                               Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" />
+                </DockPanel>
+
+                <!-- Weekday Headers -->
+                <UniformGrid DockPanel.Dock="Top" Columns="7" Margin="0,0,0,8">
+                    <TextBlock Text="日" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
+                    <TextBlock Text="一" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="二" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="三" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="四" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="五" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="六" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
+                </UniformGrid>
+
+                <!-- Calendar Grid (7 columns, 6 rows) -->
+                <ItemsControl x:Name="CalendarGrid">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="7" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="1" CornerRadius="6" Padding="3" Cursor="Hand"
+                                    MouseLeftButtonDown="Day_Click" Tag="{Binding Date}"
+                                    MinHeight="50" VerticalAlignment="Stretch">
+                                <DockPanel>
+                                    <!-- Day Number with selection circle -->
+                                    <Border DockPanel.Dock="Top" Width="24" Height="24"
+                                            CornerRadius="12" HorizontalAlignment="Center"
+                                            Margin="0,0,0,2" BorderThickness="0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="BorderBrush" Value="Transparent" />
+                                                <Setter Property="BorderThickness" Value="0" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding Day}" FontSize="12"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Foreground" Value="White" />
+                                                            <Setter Property="FontWeight" Value="Bold" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsOtherMonth}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+                                                            <Setter Property="Opacity" Value="0.4" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                    <!-- Task bars (main tasks only) -->
+                                    <ItemsControl ItemsSource="{Binding Tasks}" IsHitTestVisible="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Height="12" CornerRadius="2" Margin="0,1,0,1"
+                                                        Background="{Binding Color}" Opacity="{Binding Opacity}">
+                                                    <TextBlock Text="{Binding Title}" FontSize="7"
+                                                               Foreground="White" VerticalAlignment="Center"
+                                                               Margin="2,0,2,0" TextTrimming="CharacterEllipsis" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DockPanel>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="BorderBrush" Value="Transparent" />
+                                        <Setter Property="BorderThickness" Value="1.5" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="BorderBrush" Value="Transparent" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <!-- Day Tasks Sidebar -->
+        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="12,0,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" x:Name="SelectedDateTitle" Text="选择日期查看任务" 
+                           FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,12" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DayTaskPanel" />
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

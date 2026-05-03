@@ -1,0 +1,54 @@
+<Window x:Class="ME.Views.QuantitativeInputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="量化数据录入" Height="480" Width="500"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        ResizeMode="NoResize"
+        KeyDown="Window_KeyDown">
+    <StackPanel Margin="28">
+        <TextBlock x:Name="TaskTitleText" FontSize="18" FontWeight="Bold"
+                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+        <TextBlock x:Name="ModeText" FontSize="13"
+                   Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,20" />
+
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,20">
+            <StackPanel>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="当前值" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock x:Name="CurrentValueText" FontSize="24" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="目标值" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock x:Name="TargetValueText" FontSize="24" FontWeight="Bold"
+                                   Foreground="{StaticResource TextBrush}" />
+                    </StackPanel>
+                </Grid>
+                <ProgressBar x:Name="ProgressBar" Maximum="100" Height="8"
+                             Background="{StaticResource BackgroundBrush}"
+                             Foreground="{StaticResource PrimaryBrush}" />
+                <TextBlock x:Name="ProgressText" FontSize="12"
+                           Foreground="{StaticResource SecondaryTextBrush}" Margin="0,4,0,0" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock x:Name="InputLabel" FontSize="13" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,8" />
+            <TextBox x:Name="ValueInput" Style="{StaticResource InputTextBoxStyle}"
+                     Height="50" FontSize="18" FontWeight="SemiBold" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Content="取消" Style="{StaticResource SecondaryButtonStyle}"
+                    Click="Cancel_Click" Padding="32,12" Margin="0,0,16,0" FontSize="14" />
+            <Button Content="确认" Style="{StaticResource PrimaryButtonStyle}"
+                    Click="Confirm_Click" Padding="32,12" FontSize="14" />
+        </StackPanel>
+    </StackPanel>
+</Window>

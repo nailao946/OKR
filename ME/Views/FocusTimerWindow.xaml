@@ -1,0 +1,44 @@
+<Window x:Class="ME.Views.FocusTimerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ME.ViewModels"
+        Title="专注计时" Height="250" Width="350"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="ToolWindow"
+        ResizeMode="NoResize"
+        Topmost="True"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Timer Display -->
+        <TextBlock Grid.Row="0" Text="{Binding DisplayTime}" FontSize="48" FontWeight="Bold"
+                   Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center"
+                   Margin="0,0,0,20" />
+
+        <!-- Controls -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+            <Button Content="开始" Command="{Binding StartCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8" Margin="0,0,8,0" />
+            <Button Content="暂停" Command="{Binding PauseCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}" Padding="20,8" Margin="0,0,8,0" />
+            <Button Content="停止" Command="{Binding StopCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}" Padding="20,8" Margin="0,0,8,0" />
+            <Button Content="重置" Command="{Binding ResetCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}" Padding="20,8" />
+        </StackPanel>
+
+        <!-- Mode Toggle -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Content="切换计时模式" Command="{Binding ToggleModeCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}" Padding="16,6" />
+            <TextBlock Text="{Binding Mode}" FontSize="11" Foreground="{StaticResource SecondaryTextBrush}"
+                       VerticalAlignment="Center" Margin="12,0,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>

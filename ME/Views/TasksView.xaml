@@ -1,0 +1,79 @@
+<UserControl x:Class="ME.Views.TasksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:ME.Converters"
+             IsVisibleChanged="TasksView_IsVisibleChanged">
+    <UserControl.Resources>
+        <converters:GoalTagColorConverter x:Key="TagColorConverter" />
+        <converters:QuantitativeProgressConverter x:Key="QuantProgressConverter" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Horizontal Calendar Strip -->
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,12" Padding="12,8"
+                SizeChanged="DateStrip_SizeChanged">
+            <DockPanel>
+                <TextBlock x:Name="MonthLabel" DockPanel.Dock="Left" FontSize="16" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
+                           Margin="0,0,16,0" MinWidth="60" />
+                <Button DockPanel.Dock="Left" Content="◀" Click="ScrollLeft_Click"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,8,0" FontSize="12" />
+                <Button DockPanel.Dock="Right" Content="▶" Click="ScrollRight_Click"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="8,0,0,0" FontSize="12" />
+                <ScrollViewer x:Name="DateScroller" HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled" ClipToBounds="True">
+                    <StackPanel x:Name="DateStrip" Orientation="Horizontal" />
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Today's Goals Section -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,12"
+                x:Name="TodayGoalsSection" Visibility="Collapsed">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="今日目标" FontSize="14" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                    <StackPanel x:Name="TodayGoalsPanel" />
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Add Task + Tag Filter -->
+        <DockPanel Grid.Row="2" Margin="0,0,0,8">
+            <Button Content="+ 添加任务" Click="AddTask_Click"
+                    Style="{StaticResource PrimaryButtonStyle}" Padding="16,8" FontSize="13"
+                    DockPanel.Dock="Left" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                          DockPanel.Dock="Right" Margin="8,0,0,0">
+                <StackPanel x:Name="TagFilterPanel" Orientation="Horizontal" />
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- Task List - built programmatically with tree structure -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Expander x:Name="IncompleteExpander" IsExpanded="True" Margin="0,0,0,8">
+                    <Expander.Header>
+                        <TextBlock Text="未完成" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}" />
+                    </Expander.Header>
+                    <StackPanel x:Name="IncompleteTasksPanel" />
+                </Expander>
+                <Expander x:Name="CompletedExpander" IsExpanded="False" Margin="0,8,0,0">
+                    <Expander.Header>
+                        <TextBlock Text="已完成" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </Expander.Header>
+                    <StackPanel x:Name="CompletedTasksPanel" />
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
