@@ -362,4 +362,14 @@
     <!-- Default ComboBox Style - click-anywhere to open -->
     <Style TargetType="ComboBox" BasedOn="{StaticResource MacComboBoxStyle}" />
 
+    <!-- ToolTip Style - dark/light aware -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
 </ResourceDictionary>

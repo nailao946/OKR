@@ -112,13 +112,20 @@
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        HorizontalAlignment="Right" />
                         </DockPanel>
-                        <Border Style="{StaticResource CardStyle}" Padding="8">
-                            <Canvas x:Name="GanttCanvas" Height="200" />
+                        <Border Style="{StaticResource CardStyle}" Padding="8"
+                                SizeChanged="GanttBorder_SizeChanged">
+                            <Canvas x:Name="GanttCanvas" MinHeight="120" />
                         </Border>
                         <!-- Gantt Detail Panel -->
                         <Border x:Name="GanttDetailPanel" Style="{StaticResource CardStyle}" 
                                 Padding="12,10" Margin="0,8,0,0" Visibility="Collapsed">
-                            <StackPanel x:Name="GanttDetailContent" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="✕" Click="GanttDetail_Close"
+                                        Style="{StaticResource SecondaryButtonStyle}" 
+                                        Padding="6,2" FontSize="11" Margin="8,0,0,0"
+                                        VerticalAlignment="Top" />
+                                <StackPanel x:Name="GanttDetailContent" />
+                            </DockPanel>
                         </Border>
                     </DockPanel>
                 </Border>

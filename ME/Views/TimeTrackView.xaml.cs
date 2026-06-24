@@ -26,6 +26,7 @@ namespace ME.Views
         private bool _eventsWired = false;
         private bool _isPomodoroMode = false;
         private string _statsMode = "day"; // day, week, month
+        private double _ganttWidth = 400;
 
         public TimeTrackView()
         {
@@ -502,6 +503,12 @@ namespace ME.Views
         }
 
         // ========== GANTT CHART ==========
+        private void GanttBorder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            _ganttWidth = e.NewSize.Width - 16;
+            if (IsVisible) DrawGanttChart();
+        }
+
         private void DrawGanttChart()
         {
             GanttCanvas.Children.Clear();
@@ -522,21 +529,21 @@ namespace ME.Views
                 return;
             }
 
-            double canvasWidth = GanttCanvas.ActualWidth > 0 ? GanttCanvas.ActualWidth : 400;
-            double canvasHeight = 200;
-            double rowHeight = 22;
-            double headerHeight = 20;
-            double leftMargin = 50;
+            double canvasWidth = _ganttWidth > 50 ? _ganttWidth : 400;
+            double rowHeight = 24;
+            double headerHeight = 22;
+            double leftMargin = 55;
 
             var tagGroups = records.GroupBy(r => r.TagId).ToList();
             double y = headerHeight;
+            double neededHeight = headerHeight + tagGroups.Count * rowHeight + 10;
 
             for (int h = 0; h < 24; h += 3)
             {
                 double x = leftMargin + (h / 24.0) * (canvasWidth - leftMargin);
                 var line = new Line
                 {
-                    X1 = x, Y1 = headerHeight, X2 = x, Y2 = canvasHeight,
+                    X1 = x, Y1 = headerHeight, X2 = x, Y2 = neededHeight,
                     Stroke = (Brush)FindResource("BorderBrush"),
                     StrokeThickness = 0.5
                 };
@@ -603,10 +610,9 @@ namespace ME.Views
                 }
 
                 y += rowHeight;
-                if (y > canvasHeight - rowHeight) break;
             }
 
-            GanttCanvas.Height = Math.Max(200, y + 10);
+            GanttCanvas.Height = Math.Max(120, neededHeight);
         }
 
         // ========== RECORDS ==========
@@ -925,6 +931,8 @@ namespace ME.Views
                 var path = CreatePieSlice(cx, cy, r, startAngle, sweepAngle, color);
                 path.ToolTip = $"{tag?.Name ?? "未知"}\n时长: {FormatDuration(kv.Value)}\n占比: {pct:F1}%";
                 path.Cursor = Cursors.Hand;
+                path.Tag = new PieSliceInfo { Tag = tag, Duration = kv.Value, Pct = pct, Color = color };
+                path.MouseLeftButtonDown += PieSlice_Click;
                 canvas.Children.Add(path);
                 startAngle += sweepAngle;
             }
@@ -968,40 +976,138 @@ namespace ME.Views
         }
 
         // ========== GANTT BAR CLICK ==========
+        private void GanttDetail_Close(object sender, RoutedEventArgs e)
+        {
+            GanttDetailPanel.Visibility = Visibility.Collapsed;
+        }
+
         private void GanttBar_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is Border bar && bar.Tag is GanttBarInfo info)
             {
-                GanttDetailPanel.Visibility = Visibility.Visible;
-                GanttDetailPanel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.Color));
-                GanttDetailPanel.BorderThickness = new Thickness(2);
-                GanttDetailContent.Children.Clear();
-
-                var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-                headerPanel.Children.Add(new Border
-                {
-                    Width = 12, Height = 12, CornerRadius = new CornerRadius(3),
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.Color)),
-                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
-                });
-                headerPanel.Children.Add(new TextBlock
-                {
-                    Text = info.Tag?.Name ?? "未知", FontSize = 14, FontWeight = FontWeights.Bold,
-                    Foreground = (Brush)FindResource("TextBrush")
-                });
-                GanttDetailContent.Children.Add(headerPanel);
-
-                var detailGrid = new Grid();
-                detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-                AddDetailRow(detailGrid, 0, "时间范围", $"{info.Record.StartTime:HH:mm} - {info.Record.EndTime?.ToString("HH:mm") ?? "进行中"}");
-                AddDetailRow(detailGrid, 1, "时长", FormatDuration(info.Dur));
-                AddDetailRow(detailGrid, 2, "占比", $"{info.Pct:F1}%");
-                AddDetailRow(detailGrid, 3, "日期", info.Record.StartTime.ToString("yyyy-MM-dd"));
-
-                GanttDetailContent.Children.Add(detailGrid);
+                ShowGanttDetail(info.Tag, info.Record, info.Dur, info.Pct, info.Color);
             }
+        }
+
+        private void ShowGanttDetail(TimeTag tag, TimeRecord record, TimeSpan dur, double pctOfTag, string color)
+        {
+            GanttDetailPanel.Visibility = Visibility.Visible;
+            GanttDetailPanel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+            GanttDetailPanel.BorderThickness = new Thickness(2);
+            GanttDetailContent.Children.Clear();
+
+            // Header
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            headerPanel.Children.Add(new Border
+            {
+                Width = 14, Height = 14, CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+            });
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = tag?.Name ?? "未知", FontSize = 15, FontWeight = FontWeights.Bold,
+                Foreground = (Brush)FindResource("TextBrush")
+            });
+            GanttDetailContent.Children.Add(headerPanel);
+
+            // Tag totals: today, week, month, year
+            var tagTimeDay = GetTagTotalTime(tag?.Id ?? 0, -1);
+            var tagTimeWeek = GetTagTotalTime(tag?.Id ?? 0, -7);
+            var tagTimeMonth = GetTagTotalTime(tag?.Id ?? 0, -30);
+            var tagTimeYear = GetTagTotalTime(tag?.Id ?? 0, -365);
+
+            var totalsGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            AddTotalCell(totalsGrid, 0, 0, "今日", FormatDuration(tagTimeDay));
+            AddTotalCell(totalsGrid, 0, 1, "本周", FormatDuration(tagTimeWeek));
+            AddTotalCell(totalsGrid, 0, 2, "本月", FormatDuration(tagTimeMonth));
+            AddTotalCell(totalsGrid, 0, 3, "本年", FormatDuration(tagTimeYear));
+            GanttDetailContent.Children.Add(totalsGrid);
+
+            // Current segment detail
+            var segHeader = new TextBlock
+            {
+                Text = "当前时段", FontSize = 12, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextBrush"), Margin = new Thickness(0, 0, 0, 4)
+            };
+            GanttDetailContent.Children.Add(segHeader);
+
+            var segGrid = new Grid();
+            segGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            segGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            AddDetailRow(segGrid, 0, "时间范围", $"{record.StartTime:HH:mm} - {record.EndTime?.ToString("HH:mm") ?? "进行中"}");
+            AddDetailRow(segGrid, 1, "时长", FormatDuration(dur));
+            AddDetailRow(segGrid, 2, "今日占比", $"{pctOfTag:F1}%");
+            AddDetailRow(segGrid, 3, "日期", record.StartTime.ToString("yyyy-MM-dd"));
+            GanttDetailContent.Children.Add(segGrid);
+
+            // All records for this tag today
+            var tagRecords = _recordRepo.GetRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"))
+                .Where(r => r.TagId == (tag?.Id ?? 0)).OrderBy(r => r.StartTime).ToList();
+            if (tagRecords.Count > 1)
+            {
+                var recHeader = new TextBlock
+                {
+                    Text = $"今日全部记录 ({tagRecords.Count})", FontSize = 12, FontWeight = FontWeights.SemiBold,
+                    Foreground = (Brush)FindResource("TextBrush"), Margin = new Thickness(0, 10, 0, 4)
+                };
+                GanttDetailContent.Children.Add(recHeader);
+
+                foreach (var rec in tagRecords)
+                {
+                    var recDur = rec.EndTime.HasValue ? rec.EndTime.Value - rec.StartTime : DateTime.Now - rec.StartTime;
+                    var recPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+                    recPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"{rec.StartTime:HH:mm} - {rec.EndTime?.ToString("HH:mm") ?? "进行中"}",
+                        FontSize = 11, Foreground = (Brush)FindResource("SecondaryTextBrush"),
+                        Width = 120
+                    });
+                    recPanel.Children.Add(new TextBlock
+                    {
+                        Text = FormatDuration(recDur), FontSize = 11, FontWeight = FontWeights.SemiBold,
+                        Foreground = (Brush)FindResource("TextBrush")
+                    });
+                    GanttDetailContent.Children.Add(recPanel);
+                }
+            }
+        }
+
+        private TimeSpan GetTagTotalTime(int tagId, int days)
+        {
+            var start = DateTime.Now.Date.AddDays(days);
+            var records = _recordRepo.GetRecordsByDateRange(start.ToString("yyyy-MM-dd"), DateTime.Now.ToString("yyyy-MM-dd"));
+            TimeSpan total = TimeSpan.Zero;
+            foreach (var r in records.Where(r => r.TagId == tagId))
+                total += (r.EndTime ?? DateTime.Now) - r.StartTime;
+            return total;
+        }
+
+        private void AddTotalCell(Grid grid, int row, int col, string label, string value)
+        {
+            var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(4) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = label, FontSize = 10,
+                Foreground = (Brush)FindResource("SecondaryTextBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            panel.Children.Add(new TextBlock
+            {
+                Text = value, FontSize = 13, FontWeight = FontWeights.Bold,
+                Foreground = (Brush)FindResource("TextBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+            Grid.SetRow(panel, row);
+            Grid.SetColumn(panel, col);
+            grid.Children.Add(panel);
         }
 
         private void AddDetailRow(Grid grid, int row, string label, string value)
@@ -1030,6 +1136,70 @@ namespace ME.Views
             public TimeTag Tag { get; set; }
             public TimeRecord Record { get; set; }
             public TimeSpan Dur { get; set; }
+            public double Pct { get; set; }
+            public string Color { get; set; }
+        }
+
+        // ========== PIE SLICE CLICK ==========
+        private void PieSlice_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.Shapes.Path path && path.Tag is PieSliceInfo info)
+            {
+                ShowPieDetail(info.Tag, info.Duration, info.Pct, info.Color);
+            }
+        }
+
+        private void ShowPieDetail(TimeTag tag, TimeSpan duration, double pct, string color)
+        {
+            GanttDetailPanel.Visibility = Visibility.Visible;
+            GanttDetailPanel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+            GanttDetailPanel.BorderThickness = new Thickness(2);
+            GanttDetailContent.Children.Clear();
+
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            headerPanel.Children.Add(new Border
+            {
+                Width = 14, Height = 14, CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+            });
+            headerPanel.Children.Add(new TextBlock
+            {
+                Text = tag?.Name ?? "未知", FontSize = 15, FontWeight = FontWeights.Bold,
+                Foreground = (Brush)FindResource("TextBrush")
+            });
+            GanttDetailContent.Children.Add(headerPanel);
+
+            var dayTime = GetTagTotalTime(tag?.Id ?? 0, -1);
+            var weekTime = GetTagTotalTime(tag?.Id ?? 0, -7);
+            var monthTime = GetTagTotalTime(tag?.Id ?? 0, -30);
+            var yearTime = GetTagTotalTime(tag?.Id ?? 0, -365);
+
+            var totalsGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            AddTotalCell(totalsGrid, 0, 0, "今日", FormatDuration(dayTime));
+            AddTotalCell(totalsGrid, 0, 1, "本周", FormatDuration(weekTime));
+            AddTotalCell(totalsGrid, 0, 2, "本月", FormatDuration(monthTime));
+            AddTotalCell(totalsGrid, 0, 3, "本年", FormatDuration(yearTime));
+            GanttDetailContent.Children.Add(totalsGrid);
+
+            var detailGrid = new Grid();
+            detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            AddDetailRow(detailGrid, 0, "当前时段时长", FormatDuration(duration));
+            AddDetailRow(detailGrid, 1, "占比", $"{pct:F1}%");
+            GanttDetailContent.Children.Add(detailGrid);
+        }
+
+        private class PieSliceInfo
+        {
+            public TimeTag Tag { get; set; }
+            public TimeSpan Duration { get; set; }
             public double Pct { get; set; }
             public string Color { get; set; }
         }
