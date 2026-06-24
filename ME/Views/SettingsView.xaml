@@ -23,24 +23,8 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="窗口边框颜色" FontSize="13" Foreground="{DynamicResource TextBrush}"
                                    VerticalAlignment="Center" Width="100" />
-                        <StackPanel Orientation="Horizontal">
-                            <Border x:Name="BorderColorPreview" Width="24" Height="24" CornerRadius="4"
-                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,8,0" />
-                            <ComboBox x:Name="BorderColorCombo" Width="120" SelectionChanged="BorderColor_Changed"
-                                      Style="{StaticResource MacComboBoxStyle}">
-                                <ComboBoxItem Content="默认蓝色" Tag="#007AFF" />
-                                <ComboBoxItem Content="深空灰" Tag="#636366" />
-                                <ComboBoxItem Content="森林绿" Tag="#34C759" />
-                                <ComboBoxItem Content="珊瑚红" Tag="#FF3B30" />
-                                <ComboBoxItem Content="靛蓝紫" Tag="#5856D6" />
-                                <ComboBoxItem Content="樱花粉" Tag="#FF2D55" />
-                                <ComboBoxItem Content="琥珀橙" Tag="#FF9500" />
-                            </ComboBox>
-                            <TextBox x:Name="CustomColorInput" Width="80" Margin="6,0,0,0" FontSize="11"
-                                     Style="{StaticResource InputTextBoxStyle}" Padding="4,2"
-                                     VerticalAlignment="Center" />
-                            <Button Content="应用" Click="ApplyCustomColor_Click" FontSize="11" Padding="8,3"
-                                    Margin="4,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
+                        <StackPanel x:Name="ColorBallsPanel" Orientation="Horizontal">
+                            <!-- Color balls are created in code-behind -->
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -164,7 +148,7 @@
                 <StackPanel>
                     <TextBlock Text="关于目标地图" FontSize="16" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
-                    <TextBlock Text="版本 1.1.0" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    <TextBlock Text="版本 1.2.0" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <TextBlock Text="纯本地离线运行，保护您的隐私数据安全" FontSize="12"
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0" />
                     <TextBlock Text="基于 .NET 8 WPF + ModernWpf 开发" FontSize="12"

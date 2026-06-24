@@ -31,22 +31,23 @@ namespace ME.Services
                 {
                     if (isDark)
                     {
-                        // Dark theme colors
                         dict["BackgroundColor"] = ColorFromString("#1C1C1E");
                         dict["CardColor"] = ColorFromString("#2C2C2E");
                         dict["TextColor"] = ColorFromString("#F2F2F7");
                         dict["SecondaryTextColor"] = ColorFromString("#AEAEB2");
-                        dict["BorderColor"] = ColorFromString("#48484A");
+                        dict["BorderColor"] = ColorFromString("#3A3A3C");
                         dict["NavHoverColor"] = ColorFromString("#3A3A3C");
                         dict["NavSelectedColor"] = ColorFromString("#0A84FF");
+                        dict["NavSelectedHoverColor"] = ColorFromString("#0070E0");
 
                         dict["BackgroundBrush"] = new SolidColorBrush(ColorFromString("#1C1C1E"));
                         dict["CardBrush"] = new SolidColorBrush(ColorFromString("#2C2C2E"));
                         dict["TextBrush"] = new SolidColorBrush(ColorFromString("#F2F2F7"));
                         dict["SecondaryTextBrush"] = new SolidColorBrush(ColorFromString("#AEAEB2"));
-                        dict["BorderBrush"] = new SolidColorBrush(ColorFromString("#48484A"));
+                        dict["BorderBrush"] = new SolidColorBrush(ColorFromString("#3A3A3C"));
                         dict["NavHoverBrush"] = new SolidColorBrush(ColorFromString("#3A3A3C"));
                         dict["NavSelectedBrush"] = new SolidColorBrush(ColorFromString("#0A84FF"));
+                        dict["NavSelectedHoverBrush"] = new SolidColorBrush(ColorFromString("#0070E0"));
 
                         dict["PrimaryBrush"] = new SolidColorBrush(ColorFromString("#0A84FF"));
                         dict["PrimaryColor"] = ColorFromString("#0A84FF");
@@ -74,7 +75,6 @@ namespace ME.Services
                     }
                     else
                     {
-                        // Light theme colors
                         dict["BackgroundColor"] = ColorFromString("#F2F2F7");
                         dict["CardColor"] = ColorFromString("#FFFFFF");
                         dict["TextColor"] = ColorFromString("#1C1C1E");
@@ -82,6 +82,7 @@ namespace ME.Services
                         dict["BorderColor"] = ColorFromString("#E5E5EA");
                         dict["NavHoverColor"] = ColorFromString("#F0F0F5");
                         dict["NavSelectedColor"] = ColorFromString("#007AFF");
+                        dict["NavSelectedHoverColor"] = ColorFromString("#0066DD");
 
                         dict["BackgroundBrush"] = new SolidColorBrush(ColorFromString("#F2F2F7"));
                         dict["CardBrush"] = new SolidColorBrush(ColorFromString("#FFFFFF"));
@@ -90,6 +91,7 @@ namespace ME.Services
                         dict["BorderBrush"] = new SolidColorBrush(ColorFromString("#E5E5EA"));
                         dict["NavHoverBrush"] = new SolidColorBrush(ColorFromString("#F0F0F5"));
                         dict["NavSelectedBrush"] = new SolidColorBrush(ColorFromString("#007AFF"));
+                        dict["NavSelectedHoverBrush"] = new SolidColorBrush(ColorFromString("#0066DD"));
 
                         dict["PrimaryBrush"] = new SolidColorBrush(ColorFromString("#007AFF"));
                         dict["PrimaryColor"] = ColorFromString("#007AFF");

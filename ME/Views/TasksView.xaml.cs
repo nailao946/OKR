@@ -42,11 +42,93 @@ namespace ME.Views
             BuildDateStrip();
             BuildTagFilter();
             LoadData();
+            LoadMiniStats();
+
+            // Subscribe to timer updates for mini timer display
+            SharedTimerService.TimerUpdated += OnMiniTimerUpdated;
+            SharedTimerService.RunningStateChanged += OnMiniRunningChanged;
+            this.Unloaded += (s, e) =>
+            {
+                SharedTimerService.TimerUpdated -= OnMiniTimerUpdated;
+                SharedTimerService.RunningStateChanged -= OnMiniRunningChanged;
+            };
+        }
+
+        private void OnMiniTimerUpdated(string timeStr, string tagName, string tagColor)
+        {
+            if (!this.IsVisible) return;
+            Dispatcher.BeginInvoke(() =>
+            {
+                MiniTimerText.Text = timeStr;
+                MiniRunningTag.Text = tagName;
+                try { MiniRunningDot.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tagColor)); } catch { }
+            });
+        }
+
+        private void OnMiniRunningChanged(bool isRunning)
+        {
+            if (!this.IsVisible) return;
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (!isRunning)
+                {
+                    MiniTimerText.Text = "00:00:00";
+                    MiniRunningTag.Text = "";
+                    MiniRunningDot.Background = Brushes.Gray;
+                    LoadMiniStats();
+                }
+            });
+        }
+
+        private void LoadMiniStats()
+        {
+            MiniStatsPanel.Children.Clear();
+            var recordRepo = new ME.Data.TimeRecordRepository();
+            var tagRepo = new ME.Data.TimeTagRepository();
+            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var records = recordRepo.GetRecordsByDate(today);
+            var tags = tagRepo.GetAllTags();
+            var tagTime = new Dictionary<int, TimeSpan>();
+            foreach (var r in records)
+            {
+                if (!tagTime.ContainsKey(r.TagId)) tagTime[r.TagId] = TimeSpan.Zero;
+                var end = r.EndTime ?? DateTime.Now;
+                tagTime[r.TagId] += end - r.StartTime;
+            }
+            if (tagTime.Count == 0)
+            {
+                MiniStatsPanel.Children.Add(new TextBlock { Text = "暂无数据", FontSize = 11, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
+                return;
+            }
+            foreach (var kv in tagTime)
+            {
+                var tag = tags.Find(t => t.Id == kv.Key);
+                var name = tag?.Name ?? "未知";
+                var color = tag?.Color ?? "#808080";
+                var dur = kv.Value;
+                var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 12, 0) };
+                panel.Children.Add(new Border
+                {
+                    Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0)
+                });
+                var h = (int)dur.TotalHours;
+                var m = dur.Minutes;
+                var timeStr = h > 0 ? $"{h}h {m}m" : $"{m}m";
+                panel.Children.Add(new TextBlock { Text = $"{name} {timeStr}", FontSize = 11, Foreground = (SolidColorBrush)FindResource("TextBrush") });
+                MiniStatsPanel.Children.Add(panel);
+            }
         }
 
         private void TasksView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (this.IsVisible) LoadData();
+            if (this.IsVisible)
+            {
+                BuildTagFilter();
+                LoadData();
+                LoadMiniStats();
+            }
         }
 
         private void DateStrip_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -197,8 +279,22 @@ namespace ME.Views
             }
         }
 
-        private void ScrollLeft_Click(object sender, RoutedEventArgs e) { _stripStartDate = _stripStartDate.AddDays(-7); BuildDateStrip(); }
-        private void ScrollRight_Click(object sender, RoutedEventArgs e) { _stripStartDate = _stripStartDate.AddDays(7); BuildDateStrip(); }
+        private void TodayBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedDate = DateTime.Today;
+            _stripStartDate = DateTime.Today.AddDays(-3);
+            BuildDateStrip();
+            LoadData();
+        }
+
+        private void DateStrip_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Delta > 0)
+                _stripStartDate = _stripStartDate.AddDays(-7);
+            else
+                _stripStartDate = _stripStartDate.AddDays(7);
+            BuildDateStrip();
+        }
 
         // ============ LOAD DATA ============
         public void LoadData()
@@ -1009,8 +1105,7 @@ namespace ME.Views
                     int count = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
                     if (count >= task.RecurringTargetCount.Value)
                     {
-                        task.IsCompleted = true;
-                        task.CompletedAt = DateTime.Now;
+                        // Mark as completed for today only (not globally)
                         task.LastCompletedDate = _selectedDate;
                         repo2.UpdateTask(task);
                     }

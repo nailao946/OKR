@@ -9,30 +9,31 @@
         </Grid.ColumnDefinitions>
 
         <!-- Calendar -->
-        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="12">
             <DockPanel>
                 <!-- Month Navigation -->
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
-                    <Button x:Name="PrevMonthBtn" Content="◀" Click="PrevMonth_Click"
-                            Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" DockPanel.Dock="Left" />
-                    <Button x:Name="NextMonthBtn" Content="▶" Click="NextMonth_Click"
-                            Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" DockPanel.Dock="Right" />
-                    <TextBlock x:Name="MonthTitle" FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center" />
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Button Content="◀" Click="PrevMonth_Click" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="8,4" DockPanel.Dock="Left" FontSize="12" />
+                    <Button Content="▶" Click="NextMonth_Click" Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="8,4" DockPanel.Dock="Right" FontSize="12" />
+                    <TextBlock x:Name="MonthTitle" FontSize="15" FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
                 </DockPanel>
 
                 <!-- Weekday Headers -->
-                <UniformGrid DockPanel.Dock="Top" Columns="7" Margin="0,0,0,8">
-                    <TextBlock Text="日" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
-                    <TextBlock Text="一" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="二" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="三" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="四" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="五" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="六" TextAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
+                <UniformGrid DockPanel.Dock="Top" Columns="7" Margin="0,0,0,6">
+                    <TextBlock Text="日" FontSize="11" Foreground="{DynamicResource AccentRedBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="一" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="二" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="三" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="四" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="五" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="六" FontSize="11" Foreground="{DynamicResource AccentRedBrush}" HorizontalAlignment="Center" />
                 </UniformGrid>
 
-                <!-- Calendar Grid (7 columns, 6 rows) -->
+                <!-- Calendar Grid -->
                 <ItemsControl x:Name="CalendarGrid">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -41,75 +42,35 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="1" CornerRadius="6" Padding="3" Cursor="Hand"
-                                    MouseLeftButtonDown="Day_Click" Tag="{Binding Date}"
-                                    MinHeight="50" VerticalAlignment="Stretch">
-                                <DockPanel>
-                                    <!-- Day Number with selection circle -->
-                                    <Border DockPanel.Dock="Top" Width="24" Height="24"
-                                            CornerRadius="12" HorizontalAlignment="Center"
-                                            Margin="0,0,0,2" BorderThickness="0">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="Transparent" />
-                                                <Setter Property="BorderBrush" Value="Transparent" />
-                                                <Setter Property="BorderThickness" Value="0" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Day}" FontSize="12"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                            <Setter Property="Foreground" Value="White" />
-                                                            <Setter Property="FontWeight" Value="Bold" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsOtherMonth}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
-                                                            <Setter Property="Opacity" Value="0.4" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                            <Border Margin="2" Cursor="Hand" MouseLeftButtonDown="Day_Click"
+                                    MinHeight="50" CornerRadius="6"
+                                    Background="{Binding CellBackground}"
+                                    BorderBrush="{Binding CellBorder}"
+                                    BorderThickness="1">
+                                <StackPanel Margin="4">
+                                    <!-- Day number circle -->
+                                    <Border Width="24" Height="24" CornerRadius="12"
+                                            Background="{Binding DayBackground}"
+                                            HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Day}" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{Binding DayForeground}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
-                                    <!-- Task bars (main tasks only) -->
-                                    <ItemsControl ItemsSource="{Binding Tasks}" IsHitTestVisible="False">
+                                    <!-- Task bars -->
+                                    <ItemsControl ItemsSource="{Binding Tasks}" Margin="0,2,0,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Height="12" CornerRadius="2" Margin="0,1,0,1"
-                                                        Background="{Binding Color}" Opacity="{Binding Opacity}">
-                                                    <TextBlock Text="{Binding Title}" FontSize="7"
-                                                               Foreground="White" VerticalAlignment="Center"
-                                                               Margin="2,0,2,0" TextTrimming="CharacterEllipsis" />
+                                                <Border Height="12" CornerRadius="2" Margin="0,1"
+                                                        Background="{Binding Color}" Opacity="{Binding Opacity}"
+                                                        IsHitTestVisible="False">
+                                                    <TextBlock Text="{Binding Title}" FontSize="7" Foreground="White"
+                                                               Margin="2,0" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                </DockPanel>
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background" Value="Transparent" />
-                                        <Setter Property="BorderBrush" Value="Transparent" />
-                                        <Setter Property="BorderThickness" Value="1.5" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsToday}" Value="True">
-                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                <Setter Property="Background" Value="Transparent" />
-                                                <Setter Property="BorderBrush" Value="Transparent" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -118,10 +79,11 @@
         </Border>
 
         <!-- Day Tasks Sidebar -->
-        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="12,0,0,0">
+        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" x:Name="SelectedDateTitle" Text="选择日期查看任务" 
-                           FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextBrush}" Margin="0,0,0,12" />
+                <TextBlock x:Name="SelectedDateTitle" DockPanel.Dock="Top" FontSize="14" FontWeight="Bold"
+                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"
+                           Text="选择日期查看任务" />
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="DayTaskPanel" />
                 </ScrollViewer>

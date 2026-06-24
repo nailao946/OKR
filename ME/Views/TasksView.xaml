@@ -9,23 +9,23 @@
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />   <!-- Row 0: Calendar strip -->
+            <RowDefinition Height="Auto" />   <!-- Row 1: Today goals + Timer + Stats -->
+            <RowDefinition Height="Auto" />   <!-- Row 2: Add task + tag filter -->
+            <RowDefinition Height="*" />      <!-- Row 3: Task list -->
         </Grid.RowDefinitions>
 
-        <!-- Horizontal Calendar Strip -->
+        <!-- Horizontal Calendar Strip: scroll wheel + today button -->
         <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,12" Padding="12,8"
-                SizeChanged="DateStrip_SizeChanged">
+                SizeChanged="DateStrip_SizeChanged"
+                MouseWheel="DateStrip_MouseWheel">
             <DockPanel>
+                <!-- Left button = Today (跳转到今天) -->
+                <Button DockPanel.Dock="Left" Content="今天" Click="TodayBtn_Click"
+                        Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="0,0,8,0" FontSize="12" />
                 <TextBlock x:Name="MonthLabel" DockPanel.Dock="Left" FontSize="16" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
                            Margin="0,0,16,0" MinWidth="60" />
-                <Button DockPanel.Dock="Left" Content="◀" Click="ScrollLeft_Click"
-                        Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,8,0" FontSize="12" />
-                <Button DockPanel.Dock="Right" Content="▶" Click="ScrollRight_Click"
-                        Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="8,0,0,0" FontSize="12" />
                 <ScrollViewer x:Name="DateScroller" HorizontalScrollBarVisibility="Hidden"
                               VerticalScrollBarVisibility="Disabled" ClipToBounds="True">
                     <StackPanel x:Name="DateStrip" Orientation="Horizontal" />
@@ -33,17 +33,51 @@
             </DockPanel>
         </Border>
 
-        <!-- Today's Goals Section -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,12"
-                x:Name="TodayGoalsSection" Visibility="Collapsed">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="今日目标" FontSize="14" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
-                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                    <StackPanel x:Name="TodayGoalsPanel" />
-                </ScrollViewer>
-            </DockPanel>
-        </Border>
+        <!-- Row 1: Today Goals (left 1/3) + Timer + Today Stats (right 2/3) -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Today Goals (left) -->
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" x:Name="TodayGoalsSection" Visibility="Collapsed">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="今日目标" FontSize="14" FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="200">
+                        <StackPanel x:Name="TodayGoalsPanel" />
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Timer + Today Stats (right) -->
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <!-- Mini Timer -->
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Left" Text="⏱ 计时器" FontSize="14" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Border x:Name="MiniRunningDot" Width="8" Height="8" CornerRadius="4"
+                                    Background="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock x:Name="MiniRunningTag" Text="" FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock x:Name="MiniTimerText" Text="00:00:00" FontSize="28" FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+
+                    <!-- Today Stats -->
+                    <TextBlock Text="今日统计" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,6" />
+                    <StackPanel x:Name="MiniStatsPanel" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="暂无数据" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Add Task + Tag Filter -->
         <DockPanel Grid.Row="2" Margin="0,0,0,8">
@@ -56,7 +90,7 @@
             </ScrollViewer>
         </DockPanel>
 
-        <!-- Task List - built programmatically with tree structure -->
+        <!-- Task List -->
         <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="TasksPanel" />
         </ScrollViewer>

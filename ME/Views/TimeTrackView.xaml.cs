@@ -72,6 +72,7 @@ namespace ME.Views
             GenerateCalendar();
             LoadStats();
             DrawGanttChart();
+            DrawPieCharts();
             SharedTimerService.CheckRunningState();
         }
 
@@ -85,6 +86,7 @@ namespace ME.Views
                 GenerateCalendar();
                 LoadStats();
                 DrawGanttChart();
+                DrawPieCharts();
             }
             else
             {
@@ -131,23 +133,39 @@ namespace ME.Views
             });
         }
 
-        // ========== MODE SWITCH ==========
-        private void CountUpRadio_Checked(object sender, RoutedEventArgs e)
+        // ========== POMODORO SETTINGS ==========
+        private void PomodoroSettings_Click(object sender, RoutedEventArgs e)
         {
-            if (_timer == null) return;
-            _timer.SetMode(TimeTimerMode.CountUp);
-            TimerText.Text = "00:00:00";
-            MinutesInput.IsEnabled = false;
-        }
+            // Open pomodoro settings dialog
+            var mins = _timer.FocusMinutes;
+            var shortBreak = _timer.ShortBreakMinutes;
+            var longBreak = _timer.LongBreakMinutes;
+            var beforeLong = _timer.PomodorosBeforeLongBreak;
 
-        private void CountDownRadio_Checked(object sender, RoutedEventArgs e)
-        {
-            if (_timer == null) return;
-            _timer.SetMode(TimeTimerMode.CountDown);
-            if (int.TryParse(MinutesInput.Text, out int min))
-                _timer.FocusMinutes = min;
-            TimerText.Text = $"{_timer.FocusMinutes:D2}:00";
-            MinutesInput.IsEnabled = true;
+            var input = Microsoft.VisualBasic.Interaction.InputBox(
+                $"番茄钟设置:\n工作时间: {mins}分钟\n短休息: {shortBreak}分钟\n长休息: {longBreak}分钟\n长休息间隔: {beforeLong}个番茄\n\n输入格式: 工作,短休息,长休息,间隔\n例如: 25,5,15,4",
+                "番茄钟设置", $"{mins},{shortBreak},{longBreak},{beforeLong}");
+
+            if (!string.IsNullOrEmpty(input))
+            {
+                var parts = input.Split(',');
+                if (parts.Length >= 4 &&
+                    int.TryParse(parts[0].Trim(), out int w) && w > 0 &&
+                    int.TryParse(parts[1].Trim(), out int sb) && sb > 0 &&
+                    int.TryParse(parts[2].Trim(), out int lb) && lb > 0 &&
+                    int.TryParse(parts[3].Trim(), out int bl) && bl > 0)
+                {
+                    _timer.FocusMinutes = w;
+                    _timer.ShortBreakMinutes = sb;
+                    _timer.LongBreakMinutes = lb;
+                    _timer.PomodorosBeforeLongBreak = bl;
+                    MinutesInput.Text = w.ToString();
+                }
+                else
+                {
+                    MessageBox.Show("格式错误，请输入正确的数字格式", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
         }
 
         // ========== POMODORO ==========
@@ -157,11 +175,11 @@ namespace ME.Views
 
             if (_isPomodoroMode)
             {
-                CountDownRadio.IsChecked = true;
                 if (int.TryParse(MinutesInput.Text, out int min))
                     _timer.FocusMinutes = min;
                 _timer.StartPomodoro();
                 PomodoroToggleBtn.Content = "🍅 退出番茄";
+                PomodoroSettingsBtn.Visibility = Visibility.Visible;
                 PomodoroPhaseText.Visibility = Visibility.Visible;
                 PomodoroProgress.Visibility = Visibility.Visible;
                 UpdatePomodoroPhaseText();
@@ -170,10 +188,12 @@ namespace ME.Views
             else
             {
                 _timer.IsPomodoroMode = false;
-                CountUpRadio.IsChecked = true;
+                _timer.SetMode(TimeTimerMode.CountUp);
                 PomodoroToggleBtn.Content = "🍅 番茄钟";
+                PomodoroSettingsBtn.Visibility = Visibility.Collapsed;
                 PomodoroPhaseText.Visibility = Visibility.Collapsed;
                 PomodoroProgress.Visibility = Visibility.Collapsed;
+                TimerText.Text = "00:00:00";
             }
         }
 
@@ -373,12 +393,14 @@ namespace ME.Views
         private void StatsDay_Click(object sender, RoutedEventArgs e) { _statsMode = "day"; UpdateStatsButtons(); LoadStats(); }
         private void StatsWeek_Click(object sender, RoutedEventArgs e) { _statsMode = "week"; UpdateStatsButtons(); LoadStats(); }
         private void StatsMonth_Click(object sender, RoutedEventArgs e) { _statsMode = "month"; UpdateStatsButtons(); LoadStats(); }
+        private void StatsYear_Click(object sender, RoutedEventArgs e) { _statsMode = "year"; UpdateStatsButtons(); LoadStats(); }
 
         private void UpdateStatsButtons()
         {
             StatsDayBtn.Style = (Style)FindResource(_statsMode == "day" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
             StatsWeekBtn.Style = (Style)FindResource(_statsMode == "week" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
             StatsMonthBtn.Style = (Style)FindResource(_statsMode == "month" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            StatsYearBtn.Style = (Style)FindResource(_statsMode == "year" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
         }
 
         // ========== STATS ==========
@@ -397,10 +419,15 @@ namespace ME.Views
                 var startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek);
                 records = _recordRepo.GetRecordsByDateRange(startOfWeek.ToString("yyyy-MM-dd"), now.ToString("yyyy-MM-dd"));
             }
-            else
+            else if (_statsMode == "month")
             {
                 var startOfMonth = new DateTime(now.Year, now.Month, 1);
                 records = _recordRepo.GetRecordsByDateRange(startOfMonth.ToString("yyyy-MM-dd"), now.ToString("yyyy-MM-dd"));
+            }
+            else
+            {
+                var startOfYear = new DateTime(now.Year, 1, 1);
+                records = _recordRepo.GetRecordsByDateRange(startOfYear.ToString("yyyy-MM-dd"), now.ToString("yyyy-MM-dd"));
             }
 
             var tagTimes = new Dictionary<int, TimeSpan>();
@@ -534,6 +561,12 @@ namespace ME.Views
                     double x2 = leftMargin + (endHour / 24.0) * (canvasWidth - leftMargin);
                     double barWidth = Math.Max(2, x2 - x1);
 
+                    var dur = record.EndTime.HasValue ? record.EndTime.Value - record.StartTime : DateTime.Now - record.StartTime;
+                    var totalDayRecords = records.Where(r => r.TagId == group.Key).ToList();
+                    var totalDayTime = totalDayRecords.Aggregate(TimeSpan.Zero, (a, r) => a + (r.EndTime.HasValue ? r.EndTime.Value - r.StartTime : DateTime.Now - r.StartTime));
+                    var allRecordsTime = records.Aggregate(TimeSpan.Zero, (a, r) => a + (r.EndTime.HasValue ? r.EndTime.Value - r.StartTime : DateTime.Now - r.StartTime));
+                    var pctOfTag = allRecordsTime.TotalSeconds > 0 ? (dur.TotalSeconds / allRecordsTime.TotalSeconds * 100) : 0;
+
                     var bar = new Border
                     {
                         Width = barWidth,
@@ -541,7 +574,7 @@ namespace ME.Views
                         CornerRadius = new CornerRadius(3),
                         Background = brush,
                         Opacity = record.EndTime.HasValue ? 0.8 : 1.0,
-                        ToolTip = $"{tag?.Name}: {record.StartTime:HH:mm} - {record.EndTime?.ToString("HH:mm") ?? "进行中"}"
+                        ToolTip = $"{tag?.Name}\n{record.StartTime:HH:mm} - {record.EndTime?.ToString("HH:mm") ?? "进行中"}\n时长: {FormatDuration(dur)}\n占比: {pctOfTag:F1}%"
                     };
                     Canvas.SetLeft(bar, x1);
                     Canvas.SetTop(bar, y + 2);
@@ -822,6 +855,97 @@ namespace ME.Views
                 }
 
                 CalendarGrid.Children.Add(cell);
+            }
+        }
+
+        // ========== PIE CHARTS ==========
+        private void DrawPieCharts()
+        {
+            DrawPieChart(WeekPieCanvas, GetTagTimesForPeriod(-7));
+            DrawPieChart(MonthPieCanvas, GetTagTimesForPeriod(-30));
+            UpdatePieLegend();
+        }
+
+        private Dictionary<int, TimeSpan> GetTagTimesForPeriod(int days)
+        {
+            var start = DateTime.Now.Date.AddDays(days);
+            var records = _recordRepo.GetRecordsByDateRange(start.ToString("yyyy-MM-dd"), DateTime.Now.ToString("yyyy-MM-dd"));
+            var tagTimes = new Dictionary<int, TimeSpan>();
+            foreach (var r in records)
+            {
+                var dur = (r.EndTime ?? DateTime.Now) - r.StartTime;
+                if (!tagTimes.ContainsKey(r.TagId)) tagTimes[r.TagId] = TimeSpan.Zero;
+                tagTimes[r.TagId] += dur;
+            }
+            return tagTimes;
+        }
+
+        private void DrawPieChart(Canvas canvas, Dictionary<int, TimeSpan> tagTimes)
+        {
+            canvas.Children.Clear();
+            var total = tagTimes.Values.Aggregate(TimeSpan.Zero, (a, b) => a + b);
+            if (total.TotalSeconds <= 0)
+            {
+                var noData = new TextBlock { Text = "暂无", FontSize = 10, Foreground = (Brush)FindResource("SecondaryTextBrush") };
+                Canvas.SetLeft(noData, 45); Canvas.SetTop(noData, 55);
+                canvas.Children.Add(noData);
+                return;
+            }
+
+            double cx = 60, cy = 60, r = 50;
+            double startAngle = 0;
+
+            foreach (var kv in tagTimes.OrderByDescending(k => k.Value))
+            {
+                var tag = _allTags.FirstOrDefault(t => t.Id == kv.Key);
+                var color = tag?.Color ?? "#808080";
+                var sweepAngle = (kv.Value.TotalSeconds / total.TotalSeconds) * 360;
+
+                var path = CreatePieSlice(cx, cy, r, startAngle, sweepAngle, color);
+                canvas.Children.Add(path);
+                startAngle += sweepAngle;
+            }
+        }
+
+        private System.Windows.Shapes.Path CreatePieSlice(double cx, double cy, double r, double startAngle, double sweepAngle, string color)
+        {
+            var startRad = startAngle * Math.PI / 180;
+            var endRad = (startAngle + sweepAngle) * Math.PI / 180;
+
+            var startPoint = new Point(cx + r * Math.Cos(startRad), cy + r * Math.Sin(startRad));
+            var endPoint = new Point(cx + r * Math.Cos(endRad), cy + r * Math.Sin(endRad));
+            var isLargeArc = sweepAngle > 180;
+
+            var figure = new PathFigure { StartPoint = new Point(cx, cy), IsClosed = true };
+            figure.Segments.Add(new LineSegment(startPoint, true));
+            figure.Segments.Add(new ArcSegment(endPoint, new Size(r, r), 0, isLargeArc, SweepDirection.Clockwise, true));
+
+            var geometry = new PathGeometry();
+            geometry.Figures.Add(figure);
+
+            return new System.Windows.Shapes.Path
+            {
+                Data = geometry,
+                Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
+                Stroke = (Brush)FindResource("CardBrush"),
+                StrokeThickness = 2
+            };
+        }
+
+        private void UpdatePieLegend()
+        {
+            PieLegendPanel.Children.Clear();
+            foreach (var tag in _allTags)
+            {
+                var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 0) };
+                panel.Children.Add(new Border
+                {
+                    Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 3, 0)
+                });
+                panel.Children.Add(new TextBlock { Text = tag.Name, FontSize = 9, Foreground = (Brush)FindResource("SecondaryTextBrush") });
+                PieLegendPanel.Children.Add(panel);
             }
         }
 

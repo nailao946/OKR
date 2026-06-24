@@ -676,8 +676,7 @@ namespace ME.Views
                         int count = taskService.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
                         if (count >= task.RecurringTargetCount.Value)
                         {
-                            task.IsCompleted = true;
-                            task.CompletedAt = DateTime.Now;
+                            // Mark as completed for today only (not globally)
                             task.LastCompletedDate = DateTime.Today;
                             repo2.UpdateTask(task);
                         }

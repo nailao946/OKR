@@ -101,7 +101,12 @@ namespace ME
             if (_notifyIcon != null && _notifyIcon.Visible)
             {
                 Hide();
-                _notifyIcon.ShowBalloonTip(2000, "目标地图", "已最小化到系统托盘", Forms.ToolTipIcon.Info);
+                var settingsRepo = new SettingsRepository();
+                var showBalloon = settingsRepo.GetValue(SettingsKeys.TrayBalloonEnabled, "True");
+                if (showBalloon == "True")
+                {
+                    _notifyIcon.ShowBalloonTip(2000, "目标地图", "已最小化到系统托盘", Forms.ToolTipIcon.Info);
+                }
             }
             else
             {

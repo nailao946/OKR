@@ -42,32 +42,24 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Mode Switch + Pomodoro -->
+                <!-- Pomodoro Controls -->
                 <Border Style="{StaticResource CardStyle}" Padding="12,8">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <RadioButton x:Name="CountUpRadio" Content="正计时" IsChecked="True"
-                                     Checked="CountUpRadio_Checked" Margin="0,0,12,0"
-                                     Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                        <RadioButton x:Name="CountDownRadio" Content="倒计时"
-                                     Checked="CountDownRadio_Checked" Margin="0,0,12,0"
-                                     Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <DockPanel>
+                        <Button x:Name="PomodoroToggleBtn" DockPanel.Dock="Left" Content="🍅 番茄钟"
+                                Click="PomodoroToggle_Click" FontSize="11" Padding="10,4"
+                                Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center" />
+                        <Button x:Name="PomodoroSettingsBtn" DockPanel.Dock="Left" Content="⚙"
+                                Click="PomodoroSettings_Click" FontSize="11" Padding="6,4" Margin="6,0,0,0"
+                                Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center"
+                                ToolTip="番茄钟设置" Visibility="Collapsed" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="分钟:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
                                        VerticalAlignment="Center" Margin="0,0,4,0" />
                             <TextBox x:Name="MinutesInput" Text="25" Width="40" FontSize="12"
                                      HorizontalContentAlignment="Center" VerticalAlignment="Center"
                                      Style="{StaticResource InputTextBoxStyle}" Padding="4,2" />
                         </StackPanel>
-                        <Button x:Name="PomodoroToggleBtn" Grid.Column="3" Content="🍅 番茄钟"
-                                Click="PomodoroToggle_Click" FontSize="11" Padding="8,4"
-                                Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center" />
-                    </Grid>
+                    </DockPanel>
                 </Border>
 
                 <!-- Tags -->
@@ -91,7 +83,7 @@
                 <Border Style="{StaticResource CardStyle}" Padding="12,8">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                            <TextBlock Text="今日统计" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="时间统计" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource SecondaryTextBrush}" DockPanel.Dock="Left" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="StatsDayBtn" Content="日" Click="StatsDay_Click" FontSize="10" Padding="6,2"
@@ -100,9 +92,13 @@
                                         Style="{StaticResource SecondaryButtonStyle}" />
                                 <Button x:Name="StatsMonthBtn" Content="月" Click="StatsMonth_Click" FontSize="10" Padding="6,2" Margin="4,0,0,0"
                                         Style="{StaticResource SecondaryButtonStyle}" />
+                                <Button x:Name="StatsYearBtn" Content="年" Click="StatsYear_Click" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
                             </StackPanel>
                         </DockPanel>
-                        <StackPanel x:Name="TodayStatsPanel" Orientation="Horizontal" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="80">
+                            <StackPanel x:Name="TodayStatsPanel" Orientation="Horizontal" />
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
 
@@ -119,6 +115,32 @@
                         <Border Style="{StaticResource CardStyle}" Padding="8">
                             <Canvas x:Name="GanttCanvas" Height="200" />
                         </Border>
+                    </DockPanel>
+                </Border>
+
+                <!-- Pie Charts: Weekly + Monthly -->
+                <Border Style="{StaticResource CardStyle}" Padding="12,8" Margin="0,0,0,8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="标签用时分布" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <TextBlock Text="本周" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,4" />
+                                <Canvas x:Name="WeekPieCanvas" Width="120" Height="120" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <TextBlock Text="本月" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,4" />
+                                <Canvas x:Name="MonthPieCanvas" Width="120" Height="120" />
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel x:Name="PieLegendPanel" Orientation="Horizontal" HorizontalAlignment="Center"
+                                    Margin="0,8,0,0" />
                     </DockPanel>
                 </Border>
 

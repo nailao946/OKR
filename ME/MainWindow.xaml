@@ -1,4 +1,4 @@
-﻿<Window x:Class="ME.MainWindow"
+<Window x:Class="ME.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ME.ViewModels"
@@ -23,8 +23,7 @@
             </Grid.RowDefinitions>
 
             <!-- Custom Title Bar -->
-            <Border Grid.Row="0" Background="{DynamicResource CardBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+            <Border Grid.Row="0" Background="{DynamicResource BackgroundBrush}"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
                     MouseLeftButtonUp="TitleBar_MouseLeftButtonUp"
                     MouseMove="TitleBar_MouseMove">
@@ -66,15 +65,15 @@
                 </Grid>
             </Border>
 
-            <!-- Main Content -->
+            <!-- Main Content: Nav + Workspace unified background -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="200" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                <!-- Nav: same background as workspace, no border -->
+                <Border Grid.Column="0" Background="{DynamicResource BackgroundBrush}">
                     <ListBox x:Name="NavList" ItemsSource="{Binding NavItems}"
                              SelectionChanged="NavList_SelectionChanged"
                              Background="Transparent" BorderThickness="0" Margin="10,10,10,10">
@@ -82,6 +81,7 @@
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="12,10" />
                                 <Setter Property="Margin" Value="0,2" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListBoxItem">
@@ -97,6 +97,14 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="border" Property="Background" Value="{DynamicResource NavHoverBrush}" />
                                                 </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsSelected" Value="True" />
+                                                        <Condition Property="IsMouseOver" Value="True" />
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NavSelectedHoverBrush}" />
+                                                    <Setter Property="TextElement.Foreground" Value="White" />
+                                                </MultiTrigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Setter.Value>
@@ -114,7 +122,8 @@
                     </ListBox>
                 </Border>
 
-                <Grid Grid.Column="1" x:Name="ContentGrid" Margin="16" />
+                <!-- Workspace: same background, cards provide visual separation -->
+                <Grid Grid.Column="1" x:Name="ContentGrid" Margin="16,0,16,16" />
             </Grid>
         </Grid>
     </Border>

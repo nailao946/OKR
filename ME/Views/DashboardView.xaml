@@ -9,11 +9,16 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Left: Task List -->
+        <!-- Left: Task List with Tag Filter -->
         <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="12">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="任务列表" FontSize="15" FontWeight="Bold"
-                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10" />
+                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6" />
+                <!-- Tag filter -->
+                <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                              Margin="0,0,0,8">
+                    <StackPanel x:Name="TagFilterPanel" Orientation="Horizontal" />
+                </ScrollViewer>
                 <ListBox x:Name="TaskListBox" SelectionMode="Single"
                          SelectionChanged="TaskListBox_SelectionChanged"
                          Style="{StaticResource MacListBoxStyle}">
@@ -40,7 +45,7 @@
                                 <TextBlock Text="{Binding TypeText}" FontSize="10"
                                            Foreground="{DynamicResource SecondaryTextBrush}"
                                            HorizontalAlignment="Left" Margin="0,2,0,0" />
-                                <StackPanel x:Name="ProgressPanel" Visibility="{Binding ProgressVisibility}" Margin="0,4,0,0">
+                                <StackPanel Visibility="{Binding ProgressVisibility}" Margin="0,4,0,0">
                                     <ProgressBar Value="{Binding ProgressValue}" Maximum="100" Height="6"
                                                  Background="{DynamicResource BackgroundBrush}" 
                                                  Foreground="{Binding ProgressBrush}" />
