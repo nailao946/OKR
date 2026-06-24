@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ME.Models;
 
 namespace ME.Views
@@ -37,6 +38,11 @@ namespace ME.Views
             TagComboBox.SelectedItem = _tags.FirstOrDefault(t => t.Id == record.TagId);
         }
 
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) DragMove();
+        }
+
         private void NoEndTime_Changed(object sender, RoutedEventArgs e)
         {
             if (EndTimeBox != null)
@@ -47,7 +53,7 @@ namespace ME.Views
         {
             if (!DateTime.TryParse(StartTimeBox.Text, out var start))
             {
-                MessageBox.Show("开始时间格式不正确", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(Window.GetWindow(this), "提示", "开始时间格式不正确", "确定");
                 return;
             }
 
@@ -56,7 +62,7 @@ namespace ME.Views
             {
                 if (!DateTime.TryParse(EndTimeBox.Text, out var endVal))
                 {
-                    MessageBox.Show("结束时间格式不正确", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    ConfirmDialog.Show(Window.GetWindow(this), "提示", "结束时间格式不正确", "确定");
                     return;
                 }
                 end = endVal;

@@ -20,6 +20,12 @@ namespace ME.Views
         private int? _editParentTaskId;
         private int? _editGoalId;
 
+        public new string Title
+        {
+            get => DialogTitle?.Text ?? "";
+            set { if (DialogTitle != null) DialogTitle.Text = value; }
+        }
+
         public TaskEditDialog()
         {
             InitializeComponent();
@@ -30,6 +36,11 @@ namespace ME.Views
             // Apply styles to ListBoxes
             WeekDayListBox.ItemContainerStyle = (Style)FindResource("MacListBoxItemStyle");
             MonthDayListBox.ItemContainerStyle = (Style)FindResource("MacListBoxItemStyle");
+        }
+
+        private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left) DragMove();
         }
 
         public TaskEditDialog(bool isSubtaskMode) : this()
@@ -49,7 +60,7 @@ namespace ME.Views
                 _editTaskId = existingTask.Id;
                 _editParentTaskId = existingTask.ParentTaskId;
                 _editGoalId = existingTask.GoalId;
-                Title = "编辑任务";
+                DialogTitle.Text = "编辑任务";
                 TaskNameBox.Text = existingTask.Title;
                 TaskDescBox.Text = existingTask.Description;
                 StartDatePicker.SelectedDate = existingTask.StartDate;
@@ -213,7 +224,8 @@ namespace ME.Views
         {
             if (string.IsNullOrWhiteSpace(TaskNameBox.Text))
             {
-                MessageBox.Show("请输入任务名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(this, "提示", "请输入任务名称", "确定");
+                TaskNameBox.Focus();
                 return;
             }
 

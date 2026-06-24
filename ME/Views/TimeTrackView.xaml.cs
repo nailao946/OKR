@@ -157,35 +157,19 @@ namespace ME.Views
         // ========== POMODORO SETTINGS ==========
         private void PomodoroSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Open pomodoro settings dialog
-            var mins = _timer.FocusMinutes;
-            var shortBreak = _timer.ShortBreakMinutes;
-            var longBreak = _timer.LongBreakMinutes;
-            var beforeLong = _timer.PomodorosBeforeLongBreak;
-
-            var input = Microsoft.VisualBasic.Interaction.InputBox(
-                $"番茄钟设置:\n工作时间: {mins}分钟\n短休息: {shortBreak}分钟\n长休息: {longBreak}分钟\n长休息间隔: {beforeLong}个番茄\n\n输入格式: 工作,短休息,长休息,间隔\n例如: 25,5,15,4",
-                "番茄钟设置", $"{mins},{shortBreak},{longBreak},{beforeLong}");
-
-            if (!string.IsNullOrEmpty(input))
+            var dialog = new PomodoroSettingsDialog(
+                _timer.FocusMinutes, _timer.ShortBreakMinutes,
+                _timer.LongBreakMinutes, _timer.PomodorosBeforeLongBreak)
             {
-                var parts = input.Split(',');
-                if (parts.Length >= 4 &&
-                    int.TryParse(parts[0].Trim(), out int w) && w > 0 &&
-                    int.TryParse(parts[1].Trim(), out int sb) && sb > 0 &&
-                    int.TryParse(parts[2].Trim(), out int lb) && lb > 0 &&
-                    int.TryParse(parts[3].Trim(), out int bl) && bl > 0)
-                {
-                    _timer.FocusMinutes = w;
-                    _timer.ShortBreakMinutes = sb;
-                    _timer.LongBreakMinutes = lb;
-                    _timer.PomodorosBeforeLongBreak = bl;
-                    MinutesInput.Text = w.ToString();
-                }
-                else
-                {
-                    MessageBox.Show("格式错误，请输入正确的数字格式", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                Owner = Window.GetWindow(this)
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                _timer.FocusMinutes = dialog.WorkMinutes;
+                _timer.ShortBreakMinutes = dialog.ShortBreakMinutes;
+                _timer.LongBreakMinutes = dialog.LongBreakMinutes;
+                _timer.PomodorosBeforeLongBreak = dialog.PomodorosBeforeLongBreak;
+                MinutesInput.Text = dialog.WorkMinutes.ToString();
             }
         }
 
@@ -333,8 +317,7 @@ namespace ME.Views
                     var deleteItem = new MenuItem { Header = "删除" };
                     deleteItem.Click += (s, ev) =>
                     {
-                        if (MessageBox.Show($"确认删除标签 \"{tag.Name}\"?", "确认",
-                            MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        if (ConfirmDialog.Show(Window.GetWindow(this), "确认删除", $"确认删除标签 \"{tag.Name}\"?", "删除", "取消"))
                         {
                             _tagRepo.DeleteTag(tag.Id);
                             if (_selectedTagId == tag.Id)
@@ -709,7 +692,7 @@ namespace ME.Views
                 };
                 deleteBtn.Click += (s, ev) =>
                 {
-                    if (MessageBox.Show("确认删除此记录?", "确认", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    if (ConfirmDialog.Show(Window.GetWindow(this), "确认删除", "确认删除此记录?", "删除", "取消"))
                     {
                         _recordRepo.DeleteRecord(record.Id);
                         LoadRecords();
@@ -743,8 +726,7 @@ namespace ME.Views
 
         private void ClearRecords_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show($"确认清空 {_selectedDate:yyyy-MM-dd} 的所有记录?", "确认",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (ConfirmDialog.Show(Window.GetWindow(this), "确认清空", $"确认清空 {_selectedDate:yyyy-MM-dd} 的所有记录?", "清空", "取消"))
             {
                 _recordRepo.ClearRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
                 LoadRecords();
@@ -774,7 +756,7 @@ namespace ME.Views
                         lines.Add($"{r.Date},{tag?.Name ?? "未知"},{r.StartTime:HH:mm},{r.EndTime?.ToString("HH:mm") ?? ""},{dur:F0}");
                     }
                     System.IO.File.WriteAllText(dialog.FileName, string.Join("\n", lines), System.Text.Encoding.UTF8);
-                    MessageBox.Show("导出成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ConfirmDialog.Show(Window.GetWindow(this), "提示", "导出成功！", "确定");
                 }
                 catch (Exception ex)
                 {
@@ -985,7 +967,12 @@ namespace ME.Views
         // ========== GANTT BAR CLICK ==========
         private void GanttDetail_Close(object sender, RoutedEventArgs e)
         {
-            GanttDetailPanel.Visibility = Visibility.Collapsed;
+            GanttDetailPopup.IsOpen = false;
+        }
+
+        private void DetailTitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) GanttDetailPopup.IsOpen = false;
         }
 
         private void GanttBar_Click(object sender, MouseButtonEventArgs e)
@@ -1014,24 +1001,22 @@ namespace ME.Views
 
         private void ShowDetailPanel(TimeTag tag, string color, TimeSpan currentDur, double currentPct, TimeRecord currentRecord)
         {
-            GanttDetailPanel.Visibility = Visibility.Visible;
-            GanttDetailPanel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-            GanttDetailPanel.BorderThickness = new Thickness(2);
             GanttDetailContent.Children.Clear();
 
-            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-            headerPanel.Children.Add(new Border
+            // Update title
+            DetailTitlePanel.Children.Clear();
+            DetailTitlePanel.Children.Add(new Border
             {
                 Width = 14, Height = 14, CornerRadius = new CornerRadius(4),
                 Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
             });
-            headerPanel.Children.Add(new TextBlock
+            DetailTitlePanel.Children.Add(new TextBlock
             {
-                Text = tag?.Name ?? "未知", FontSize = 15, FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("TextBrush")
+                Text = tag?.Name ?? "未知", FontSize = 14, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextBrush"),
+                VerticalAlignment = VerticalAlignment.Center
             });
-            GanttDetailContent.Children.Add(headerPanel);
 
             var tagTimeDay = GetTagTotalTime(tag?.Id ?? 0, -1);
             var tagTimeWeek = GetTagTotalTime(tag?.Id ?? 0, -7);
@@ -1090,6 +1075,8 @@ namespace ME.Views
             GanttDetailContent.Children.Add(_detailRecordsScroll);
 
             BuildDetailRecordsList(tag);
+
+            GanttDetailPopup.IsOpen = true;
         }
 
         private void DetailFilter_Click(object sender, RoutedEventArgs e)

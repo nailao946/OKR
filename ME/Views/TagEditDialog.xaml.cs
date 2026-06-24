@@ -142,9 +142,7 @@ namespace ME.Views
         {
             if (sender is Button btn && btn.Tag is int tagId)
             {
-                var result = MessageBox.Show("确定要删除这个标签吗？\n关联该标签的目标将取消标签关联。", 
-                    "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                if (result == MessageBoxResult.Yes)
+                if (ConfirmDialog.Show(this, "确认删除", "确定要删除这个标签吗？\n关联该标签的目标将取消标签关联。", "删除", "取消"))
                 {
                     _tagRepo.DeleteTag(tagId);
                     if (_editingTagId == tagId)
@@ -160,6 +158,11 @@ namespace ME.Views
         private void CancelEdit_Click(object sender, RoutedEventArgs e)
         {
             ResetForm();
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) DragMove();
         }
 
         private void ResetForm()
@@ -221,7 +224,7 @@ namespace ME.Views
         {
             if (string.IsNullOrWhiteSpace(TagNameBox.Text))
             {
-                MessageBox.Show("请输入标签名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(this, "提示", "请输入标签名称", "确定");
                 TagNameBox.Focus();
                 return;
             }
@@ -312,7 +315,7 @@ namespace ME.Views
             }
             catch
             {
-                MessageBox.Show("请输入有效的颜色值，如 #FF5500", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(this, "提示", "请输入有效的颜色值，如 #FF5500", "确定");
             }
         }
     }

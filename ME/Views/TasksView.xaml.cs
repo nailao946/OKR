@@ -669,7 +669,7 @@ namespace ME.Views
                 var pbValue = isQuant
                     ? (task.QuantitativeTarget > 0 ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0)
                     : (isCustomRecurring
-                        ? (task.RecurringTargetCount > 0 ? Math.Min((double)(task.RecurringCurrentCount ?? 0) / task.RecurringTargetCount.Value * 100, 100) : 0)
+                        ? (task.RecurringTargetCount > 0 ? Math.Min((double)new TaskService().GetCustomRecurringCountOnDate(task.Id, _selectedDate) / task.RecurringTargetCount.Value * 100, 100) : 0)
                         : (task.IsCompleted ? 100 : 0));
                 var pb = new ProgressBar
                 {

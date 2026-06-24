@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 using ME.Models;
 
 namespace ME.Views
@@ -42,11 +43,16 @@ namespace ME.Views
             ValueInput.Focus();
         }
 
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) DragMove();
+        }
+
         private void Confirm_Click(object sender, RoutedEventArgs e)
         {
             if (!double.TryParse(ValueInput.Text, out double input))
             {
-                MessageBox.Show("请输入有效数值", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(this, "提示", "请输入有效数值", "确定");
                 return;
             }
 
@@ -71,9 +77,9 @@ namespace ME.Views
             Close();
         }
 
-        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Enter)
+            if (e.Key == Key.Enter)
             {
                 Confirm_Click(sender, e);
             }

@@ -112,23 +112,46 @@
                                        Foreground="{DynamicResource SecondaryTextBrush}"
                                        HorizontalAlignment="Right" />
                         </DockPanel>
-                        <Border Style="{StaticResource CardStyle}" Padding="8"
+                        <Border x:Name="GanttChartBorder" Style="{StaticResource CardStyle}" Padding="8"
                                 SizeChanged="GanttBorder_SizeChanged">
                             <Canvas x:Name="GanttCanvas" MinHeight="120" />
                         </Border>
-                        <!-- Gantt Detail Panel -->
-                        <Border x:Name="GanttDetailPanel" Style="{StaticResource CardStyle}" 
-                                Padding="12,10" Margin="0,8,0,0" Visibility="Collapsed">
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" Content="✕" Click="GanttDetail_Close"
-                                        Style="{StaticResource SecondaryButtonStyle}" 
-                                        Padding="6,2" FontSize="11" Margin="8,0,0,0"
-                                        VerticalAlignment="Top" />
-                                <StackPanel x:Name="GanttDetailContent" />
-                            </DockPanel>
-                        </Border>
                     </DockPanel>
                 </Border>
+
+                <!-- Gantt Detail Popup -->
+                <Popup x:Name="GanttDetailPopup" Placement="Center" PlacementTarget="{Binding ElementName=GanttChartBorder}"
+                       AllowsTransparency="True" StaysOpen="False" IsOpen="False">
+                    <Border CornerRadius="14" Background="{DynamicResource BackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            MinWidth="320" MaxWidth="500" MaxHeight="500"
+                            Margin="0,0,0,0">
+                        <Border.Effect>
+                            <DropShadowEffect Opacity="0.25" BlurRadius="24" ShadowDepth="2" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="44" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" CornerRadius="14,14,0,0" MouseLeftButtonDown="DetailTitleBar_MouseDown"
+                                    Background="{DynamicResource CardBrush}">
+                                <Grid Margin="16,0">
+                                    <StackPanel x:Name="DetailTitlePanel" Orientation="Horizontal" VerticalAlignment="Center" />
+                                    <Button Content="✕" Click="GanttDetail_Close"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Padding="8,2" FontSize="12"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="440" Margin="16,12,16,16">
+                                <StackPanel x:Name="GanttDetailContent" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Popup>
 
                 <!-- Pie Charts: Weekly + Monthly -->
                 <Border Style="{StaticResource CardStyle}" Padding="12,8" Margin="0,0,0,8">

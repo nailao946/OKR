@@ -34,7 +34,7 @@ namespace ME.Views
             {
                 _isEditMode = true;
                 _editGoalId = existingGoal.Id;
-                Title = "编辑目标";
+                DialogTitle.Text = "编辑目标";
                 GoalNameBox.Text = existingGoal.Name;
                 GoalDescBox.Text = existingGoal.Description;
                 StartDatePicker.SelectedDate = existingGoal.StartDate;
@@ -59,6 +59,11 @@ namespace ME.Views
                 foreach (var t in childTasks)
                     Subtasks.Add(t);
             }
+        }
+
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left) DragMove();
         }
 
         private void UseQuantitativeCheck_Changed(object sender, RoutedEventArgs e)
@@ -210,7 +215,7 @@ namespace ME.Views
         {
             if (string.IsNullOrWhiteSpace(GoalNameBox.Text))
             {
-                MessageBox.Show("请输入目标名称", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ConfirmDialog.Show(this, "提示", "请输入目标名称", "确定");
                 GoalNameBox.Focus();
                 return;
             }
