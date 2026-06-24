@@ -46,7 +46,8 @@
 
                 <TextBlock Text="标签" FontSize="12" Margin="0,12,0,4"
                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
-                <ComboBox x:Name="TagComboBox" FontSize="12" DisplayMemberPath="Name" />
+                <ComboBox x:Name="TagComboBox" FontSize="12" DisplayMemberPath="Name"
+                          Style="{StaticResource MacComboBoxStyle}" />
             </StackPanel>
 
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">

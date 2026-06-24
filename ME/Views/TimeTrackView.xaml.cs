@@ -43,6 +43,7 @@ namespace ME.Views
                 {
                     SharedTimerService.TimerUpdated += OnSharedTimerUpdated;
                     SharedTimerService.RunningStateChanged += OnSharedRunningStateChanged;
+                    ThemeService.ThemeChanged += OnThemeChanged;
                     _eventsWired = true;
                 }
             };
@@ -51,6 +52,7 @@ namespace ME.Views
             {
                 SharedTimerService.TimerUpdated -= OnSharedTimerUpdated;
                 SharedTimerService.RunningStateChanged -= OnSharedRunningStateChanged;
+                ThemeService.ThemeChanged -= OnThemeChanged;
                 _eventsWired = false;
                 _clockTimer?.Stop();
             };
@@ -130,6 +132,18 @@ namespace ME.Views
                     LoadStats();
                     DrawGanttChart();
                 }
+            });
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                LoadTags();
+                LoadRecords();
+                LoadStats();
+                DrawGanttChart();
+                DrawPieCharts();
             });
         }
 
@@ -455,22 +469,26 @@ namespace ME.Views
                 var tag = _allTags.FirstOrDefault(t => t.Id == kvp.Key);
                 if (tag == null) continue;
 
-                var dot = new Border
+                var panel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 10, 4)
+                };
+                panel.Children.Add(new Border
                 {
                     Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
                     Margin = new Thickness(6, 0, 3, 0),
                     VerticalAlignment = VerticalAlignment.Center
-                };
-                var text = new TextBlock
+                });
+                panel.Children.Add(new TextBlock
                 {
                     Text = $"{tag.Name} {FormatDuration(kvp.Value)}",
                     FontSize = 11,
                     Foreground = (Brush)FindResource("SecondaryTextBrush"),
                     VerticalAlignment = VerticalAlignment.Center
-                };
-                TodayStatsPanel.Children.Add(dot);
-                TodayStatsPanel.Children.Add(text);
+                });
+                TodayStatsPanel.Children.Add(panel);
             }
         }
 
@@ -574,8 +592,11 @@ namespace ME.Views
                         CornerRadius = new CornerRadius(3),
                         Background = brush,
                         Opacity = record.EndTime.HasValue ? 0.8 : 1.0,
+                        Cursor = Cursors.Hand,
                         ToolTip = $"{tag?.Name}\n{record.StartTime:HH:mm} - {record.EndTime?.ToString("HH:mm") ?? "进行中"}\n时长: {FormatDuration(dur)}\n占比: {pctOfTag:F1}%"
                     };
+                    bar.Tag = new GanttBarInfo { Tag = tag, Record = record, Dur = dur, Pct = pctOfTag, Color = color };
+                    bar.MouseLeftButtonDown += GanttBar_Click;
                     Canvas.SetLeft(bar, x1);
                     Canvas.SetTop(bar, y + 2);
                     GanttCanvas.Children.Add(bar);
@@ -863,7 +884,6 @@ namespace ME.Views
         {
             DrawPieChart(WeekPieCanvas, GetTagTimesForPeriod(-7));
             DrawPieChart(MonthPieCanvas, GetTagTimesForPeriod(-30));
-            UpdatePieLegend();
         }
 
         private Dictionary<int, TimeSpan> GetTagTimesForPeriod(int days)
@@ -900,8 +920,11 @@ namespace ME.Views
                 var tag = _allTags.FirstOrDefault(t => t.Id == kv.Key);
                 var color = tag?.Color ?? "#808080";
                 var sweepAngle = (kv.Value.TotalSeconds / total.TotalSeconds) * 360;
+                var pct = (kv.Value.TotalSeconds / total.TotalSeconds * 100);
 
                 var path = CreatePieSlice(cx, cy, r, startAngle, sweepAngle, color);
+                path.ToolTip = $"{tag?.Name ?? "未知"}\n时长: {FormatDuration(kv.Value)}\n占比: {pct:F1}%";
+                path.Cursor = Cursors.Hand;
                 canvas.Children.Add(path);
                 startAngle += sweepAngle;
             }
@@ -932,23 +955,6 @@ namespace ME.Views
             };
         }
 
-        private void UpdatePieLegend()
-        {
-            PieLegendPanel.Children.Clear();
-            foreach (var tag in _allTags)
-            {
-                var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 0) };
-                panel.Children.Add(new Border
-                {
-                    Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
-                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 3, 0)
-                });
-                panel.Children.Add(new TextBlock { Text = tag.Name, FontSize = 9, Foreground = (Brush)FindResource("SecondaryTextBrush") });
-                PieLegendPanel.Children.Add(panel);
-            }
-        }
-
         private void PrevMonth_Click(object sender, RoutedEventArgs e)
         {
             _currentMonth = _currentMonth.AddMonths(-1);
@@ -959,6 +965,73 @@ namespace ME.Views
         {
             _currentMonth = _currentMonth.AddMonths(1);
             GenerateCalendar();
+        }
+
+        // ========== GANTT BAR CLICK ==========
+        private void GanttBar_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border bar && bar.Tag is GanttBarInfo info)
+            {
+                GanttDetailPanel.Visibility = Visibility.Visible;
+                GanttDetailPanel.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.Color));
+                GanttDetailPanel.BorderThickness = new Thickness(2);
+                GanttDetailContent.Children.Clear();
+
+                var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
+                headerPanel.Children.Add(new Border
+                {
+                    Width = 12, Height = 12, CornerRadius = new CornerRadius(3),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.Color)),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+                });
+                headerPanel.Children.Add(new TextBlock
+                {
+                    Text = info.Tag?.Name ?? "未知", FontSize = 14, FontWeight = FontWeights.Bold,
+                    Foreground = (Brush)FindResource("TextBrush")
+                });
+                GanttDetailContent.Children.Add(headerPanel);
+
+                var detailGrid = new Grid();
+                detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                AddDetailRow(detailGrid, 0, "时间范围", $"{info.Record.StartTime:HH:mm} - {info.Record.EndTime?.ToString("HH:mm") ?? "进行中"}");
+                AddDetailRow(detailGrid, 1, "时长", FormatDuration(info.Dur));
+                AddDetailRow(detailGrid, 2, "占比", $"{info.Pct:F1}%");
+                AddDetailRow(detailGrid, 3, "日期", info.Record.StartTime.ToString("yyyy-MM-dd"));
+
+                GanttDetailContent.Children.Add(detailGrid);
+            }
+        }
+
+        private void AddDetailRow(Grid grid, int row, string label, string value)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var labelText = new TextBlock
+            {
+                Text = label, FontSize = 11,
+                Foreground = (Brush)FindResource("SecondaryTextBrush"),
+                Margin = new Thickness(0, 2, 12, 2)
+            };
+            var valueText = new TextBlock
+            {
+                Text = value, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextBrush"),
+                Margin = new Thickness(0, 2, 0, 2)
+            };
+            Grid.SetRow(labelText, row); Grid.SetColumn(labelText, 0);
+            Grid.SetRow(valueText, row); Grid.SetColumn(valueText, 1);
+            grid.Children.Add(labelText);
+            grid.Children.Add(valueText);
+        }
+
+        private class GanttBarInfo
+        {
+            public TimeTag Tag { get; set; }
+            public TimeRecord Record { get; set; }
+            public TimeSpan Dur { get; set; }
+            public double Pct { get; set; }
+            public string Color { get; set; }
         }
     }
 }

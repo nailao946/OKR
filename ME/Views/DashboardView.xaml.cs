@@ -24,6 +24,8 @@ namespace ME.Views
             BuildTagFilter();
             LoadData();
             EventAggregator.Instance.Subscribe<string>(OnTaskCompleted);
+            ThemeService.ThemeChanged += OnThemeChanged;
+            this.Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
         }
 
         private void OnTaskCompleted(string message)
@@ -36,6 +38,20 @@ namespace ME.Views
                     LoadStats();
                 }
             }
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                BuildTagFilter();
+                LoadData();
+                if (_selectedTask != null)
+                {
+                    LoadCalendar();
+                    LoadStats();
+                }
+            });
         }
 
         private void DashboardView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)

@@ -35,6 +35,8 @@ namespace ME.Views
             BuildTagFilter();
             LoadGoalsWithSections();
             EventAggregator.Instance.Subscribe<string>(OnTagChanged);
+            ThemeService.ThemeChanged += OnThemeChanged;
+            this.Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
         }
 
         private void OnTagChanged(string message)
@@ -44,6 +46,15 @@ namespace ME.Views
                 BuildTagFilter();
                 LoadGoalsWithSections();
             }
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                BuildTagFilter();
+                LoadGoalsWithSections();
+            });
         }
 
         private void GoalsView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -378,9 +389,25 @@ namespace ME.Views
                 };
                 textPanel.Children.Add(pb);
 
+                var progressLabel = $"{current}/{target}";
+                if (task.RecurringTimesPerWeek.HasValue && task.RecurringTimesPerWeek > 0)
+                {
+                    var taskService = new TaskService();
+                    var today = DateTime.Today;
+                    var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                    int weekDays = 0;
+                    for (int i = 0; i < 7; i++)
+                    {
+                        var date = startOfWeek.AddDays(i);
+                        if (date > today) break;
+                        int dayCount = taskService.GetCustomRecurringCountOnDate(task.Id, date);
+                        if (dayCount >= target) weekDays++;
+                    }
+                    progressLabel += $"  本周:{weekDays}/{task.RecurringTimesPerWeek}";
+                }
                 textPanel.Children.Add(new TextBlock
                 {
-                    Text = $"{current}/{target}",
+                    Text = progressLabel,
                     FontSize = 9, FontWeight = FontWeights.SemiBold,
                     Foreground = progressColor,
                     Margin = new Thickness(0, 3, 0, 0)
@@ -665,24 +692,27 @@ namespace ME.Views
 
                 if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
                 {
-                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, DateTime.Today);
-
                     if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
                     {
-                        if (isCompletedToday)
-                            return;
-
-                        taskService.RecordCustomRecurringCompletion(task.Id, DateTime.Today);
-                        int count = taskService.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
-                        if (count >= task.RecurringTargetCount.Value)
+                        int currentCount = taskService.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
+                        if (currentCount >= task.RecurringTargetCount.Value)
                         {
-                            // Mark as completed for today only (not globally)
-                            task.LastCompletedDate = DateTime.Today;
-                            repo2.UpdateTask(task);
+                            taskService.RemoveCompletion(task.Id, DateTime.Today);
+                        }
+                        else
+                        {
+                            taskService.RecordCustomRecurringCompletion(task.Id, DateTime.Today);
+                            int count = taskService.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
+                            if (count >= task.RecurringTargetCount.Value)
+                            {
+                                task.LastCompletedDate = DateTime.Today;
+                                repo2.UpdateTask(task);
+                            }
                         }
                     }
                     else
                     {
+                        bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, DateTime.Today);
                         if (isCompletedToday)
                             taskService.RemoveCompletion(task.Id, DateTime.Today);
                         else

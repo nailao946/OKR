@@ -96,8 +96,8 @@
                                         Style="{StaticResource SecondaryButtonStyle}" />
                             </StackPanel>
                         </DockPanel>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="80">
-                            <StackPanel x:Name="TodayStatsPanel" Orientation="Horizontal" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                            <WrapPanel x:Name="TodayStatsPanel" />
                         </ScrollViewer>
                     </DockPanel>
                 </Border>
@@ -114,6 +114,11 @@
                         </DockPanel>
                         <Border Style="{StaticResource CardStyle}" Padding="8">
                             <Canvas x:Name="GanttCanvas" Height="200" />
+                        </Border>
+                        <!-- Gantt Detail Panel -->
+                        <Border x:Name="GanttDetailPanel" Style="{StaticResource CardStyle}" 
+                                Padding="12,10" Margin="0,8,0,0" Visibility="Collapsed">
+                            <StackPanel x:Name="GanttDetailContent" />
                         </Border>
                     </DockPanel>
                 </Border>
@@ -139,8 +144,6 @@
                                 <Canvas x:Name="MonthPieCanvas" Width="120" Height="120" />
                             </StackPanel>
                         </Grid>
-                        <StackPanel x:Name="PieLegendPanel" Orientation="Horizontal" HorizontalAlignment="Center"
-                                    Margin="0,8,0,0" />
                     </DockPanel>
                 </Border>
 

@@ -18,7 +18,7 @@
         <!-- Horizontal Calendar Strip: scroll wheel + today button -->
         <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,12" Padding="12,8"
                 SizeChanged="DateStrip_SizeChanged"
-                MouseWheel="DateStrip_MouseWheel">
+                PreviewMouseWheel="DateStrip_MouseWheel">
             <DockPanel>
                 <!-- Left button = Today (跳转到今天) -->
                 <Button DockPanel.Dock="Left" Content="今天" Click="TodayBtn_Click"

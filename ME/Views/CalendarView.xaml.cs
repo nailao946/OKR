@@ -21,11 +21,18 @@ namespace ME.Views
             _currentMonth = DateTime.Today;
             _selectedDate = DateTime.Today;
             LoadCalendar();
+            ThemeService.ThemeChanged += OnThemeChanged;
+            this.Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
         }
 
         private void CalendarView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (this.IsVisible) LoadCalendar();
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(() => LoadCalendar());
         }
 
         private void PrevMonth_Click(object sender, RoutedEventArgs e)

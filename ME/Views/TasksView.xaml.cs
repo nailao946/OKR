@@ -47,10 +47,12 @@ namespace ME.Views
             // Subscribe to timer updates for mini timer display
             SharedTimerService.TimerUpdated += OnMiniTimerUpdated;
             SharedTimerService.RunningStateChanged += OnMiniRunningChanged;
+            ThemeService.ThemeChanged += OnThemeChanged;
             this.Unloaded += (s, e) =>
             {
                 SharedTimerService.TimerUpdated -= OnMiniTimerUpdated;
                 SharedTimerService.RunningStateChanged -= OnMiniRunningChanged;
+                ThemeService.ThemeChanged -= OnThemeChanged;
             };
         }
 
@@ -119,6 +121,17 @@ namespace ME.Views
                 panel.Children.Add(new TextBlock { Text = $"{name} {timeStr}", FontSize = 11, Foreground = (SolidColorBrush)FindResource("TextBrush") });
                 MiniStatsPanel.Children.Add(panel);
             }
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                BuildDateStrip();
+                BuildTagFilter();
+                LoadData();
+                LoadMiniStats();
+            });
         }
 
         private void TasksView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -618,6 +631,15 @@ namespace ME.Views
                         Text = $"{current}/{target}",
                         FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
                     });
+                    if (task.RecurringTimesPerWeek.HasValue && task.RecurringTimesPerWeek > 0)
+                    {
+                        var weekDays = CountWeekDaysCompleted(task);
+                        infoPanel.Children.Add(new TextBlock
+                        {
+                            Text = $" 本周:{weekDays}/{task.RecurringTimesPerWeek}",
+                            FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
+                        });
+                    }
                 }
                 else
                 {
@@ -741,9 +763,15 @@ namespace ME.Views
                 };
                 textPanel.Children.Add(pb);
 
+                var progressLabel = $"{current}/{target}";
+                if (task.RecurringTimesPerWeek.HasValue && task.RecurringTimesPerWeek > 0)
+                {
+                    var weekDays = CountWeekDaysCompleted(task);
+                    progressLabel += $"  本周:{weekDays}/{task.RecurringTimesPerWeek}";
+                }
                 textPanel.Children.Add(new TextBlock
                 {
-                    Text = $"{current}/{target}",
+                    Text = progressLabel,
                     FontSize = 9, FontWeight = FontWeights.SemiBold,
                     Foreground = progressColor,
                     Margin = new Thickness(0, 3, 0, 0)
@@ -1097,17 +1125,20 @@ namespace ME.Views
             {
                 if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
                 {
-                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
-                    if (isCompletedToday)
-                        return;
-
-                    taskService.RecordCustomRecurringCompletion(task.Id, _selectedDate);
-                    int count = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
-                    if (count >= task.RecurringTargetCount.Value)
+                    int currentCount = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
+                    if (currentCount >= task.RecurringTargetCount.Value)
                     {
-                        // Mark as completed for today only (not globally)
-                        task.LastCompletedDate = _selectedDate;
-                        repo2.UpdateTask(task);
+                        taskService.RemoveCompletion(task.Id, _selectedDate);
+                    }
+                    else
+                    {
+                        taskService.RecordCustomRecurringCompletion(task.Id, _selectedDate);
+                        int count = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
+                        if (count >= task.RecurringTargetCount.Value)
+                        {
+                            task.LastCompletedDate = _selectedDate;
+                            repo2.UpdateTask(task);
+                        }
                     }
                 }
                 else
@@ -1163,6 +1194,23 @@ namespace ME.Views
             var (progress, _) = taskService.CalcGoalProgress(goalId);
             goal.Progress = progress;
             goalRepo.UpdateGoal(goal);
+        }
+
+        private int CountWeekDaysCompleted(TaskItem task)
+        {
+            var taskService = new TaskService();
+            var today = DateTime.Today;
+            var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+            int count = 0;
+            for (int i = 0; i < 7; i++)
+            {
+                var date = startOfWeek.AddDays(i);
+                if (date > today) break;
+                int dayCount = taskService.GetCustomRecurringCountOnDate(task.Id, date);
+                if (dayCount >= (task.RecurringTargetCount ?? 1))
+                    count++;
+            }
+            return count;
         }
 
         private void AddTask_Click(object sender, RoutedEventArgs e)
