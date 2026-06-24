@@ -307,15 +307,30 @@ namespace ME.Views
         {
             if (sender is Border border && border.Tag is TimeTag tag)
             {
-                var menu = new ContextMenu();
+                var menu = new ContextMenu
+                {
+                    Background = (Brush)FindResource("CardBrush"),
+                    BorderBrush = (Brush)FindResource("BorderBrush"),
+                    BorderThickness = new Thickness(1)
+                };
 
-                var editItem = new MenuItem { Header = "编辑标签" };
+                var editItem = new MenuItem
+                {
+                    Header = "编辑标签",
+                    Foreground = (Brush)FindResource("TextBrush"),
+                    Background = Brushes.Transparent
+                };
                 editItem.Click += (s, ev) => EditTag(tag);
                 menu.Items.Add(editItem);
 
                 if (!tag.IsDefault)
                 {
-                    var deleteItem = new MenuItem { Header = "删除" };
+                    var deleteItem = new MenuItem
+                    {
+                        Header = "删除",
+                        Foreground = new SolidColorBrush(Color.FromRgb(255, 59, 48)),
+                        Background = Brushes.Transparent
+                    };
                     deleteItem.Click += (s, ev) =>
                     {
                         if (ConfirmDialog.Show(Window.GetWindow(this), "确认删除", $"确认删除标签 \"{tag.Name}\"?", "删除", "取消"))

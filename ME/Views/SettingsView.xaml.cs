@@ -22,14 +22,10 @@ namespace ME.Views
         private static readonly List<ColorBallDef> ColorBalls = new List<ColorBallDef>
         {
             new ColorBallDef("#007AFF", "默认蓝"),
-            new ColorBallDef("#636366", "深空灰"),
             new ColorBallDef("#34C759", "森林绿"),
             new ColorBallDef("#FF3B30", "珊瑚红"),
-            new ColorBallDef("#5856D6", "靛蓝紫"),
-            new ColorBallDef("#FF2D55", "樱花粉"),
             new ColorBallDef("#FF9500", "琥珀橙"),
-            new ColorBallDef("#FFD60A", "琥珀黄"),
-            new ColorBallDef("NONE", "无边框"),
+            new ColorBallDef("#5856D6", "靛蓝紫"),
             new ColorBallDef("CUSTOM", "自定义"),
         };
 
@@ -55,29 +51,17 @@ namespace ME.Views
             {
                 var ball = new Border
                 {
-                    Width = 28, Height = 28,
-                    CornerRadius = new CornerRadius(14),
-                    Margin = new Thickness(0, 0, 8, 0),
+                    Width = 30, Height = 30,
+                    CornerRadius = new CornerRadius(15),
+                    Margin = new Thickness(0, 0, 10, 0),
                     Cursor = Cursors.Hand,
                     Tag = def.Color,
                     ToolTip = def.Name,
-                    BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
+                    BorderBrush = Brushes.Transparent,
                     BorderThickness = new Thickness(2),
                 };
 
-                if (def.Color == "NONE")
-                {
-                    ball.Background = (SolidColorBrush)FindResource("CardBrush");
-                    ball.Child = new TextBlock
-                    {
-                        Text = "✕",
-                        FontSize = 14,
-                        Foreground = new SolidColorBrush(Color.FromRgb(255, 59, 48)),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                    };
-                }
-                else if (def.Color == "CUSTOM")
+                if (def.Color == "CUSTOM")
                 {
                     ball.Background = (SolidColorBrush)FindResource("CardBrush");
                     ball.Child = new TextBlock
@@ -112,7 +96,7 @@ namespace ME.Views
                     var ballColor = ball.Tag as string;
                     bool isSelected;
                     if (ballColor == "CUSTOM")
-                        isSelected = !isPreset && currentColor != "NONE";
+                        isSelected = !isPreset;
                     else
                         isSelected = ballColor == currentColor;
                     ball.BorderBrush = isSelected
@@ -120,7 +104,7 @@ namespace ME.Views
                         : Brushes.Transparent;
                     ball.BorderThickness = isSelected ? new Thickness(3) : new Thickness(2);
 
-                    if (ballColor == "CUSTOM" && !isPreset && currentColor != "NONE")
+                    if (ballColor == "CUSTOM" && !isPreset)
                     {
                         try
                         {
@@ -148,16 +132,8 @@ namespace ME.Views
                     ShowCustomColorDialog();
                     return;
                 }
-                if (color == "NONE")
-                {
-                    _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, "NONE");
-                    ApplyWindowBorderColor("NONE");
-                }
-                else
-                {
-                    _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, color);
-                    ApplyWindowBorderColor(color);
-                }
+                _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, color);
+                ApplyWindowBorderColor(color);
                 UpdateColorBallSelection();
             }
         }
@@ -381,15 +357,8 @@ namespace ME.Views
                     var border = mainWindow.FindName("WindowBorder") as System.Windows.Controls.Border;
                     if (border != null)
                     {
-                        if (colorStr == "NONE")
-                        {
-                            border.BorderThickness = new Thickness(0);
-                        }
-                        else
-                        {
-                            border.BorderThickness = new Thickness(1);
-                            border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorStr));
-                        }
+                        border.BorderThickness = new Thickness(1);
+                        border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorStr));
                     }
                 }
             }

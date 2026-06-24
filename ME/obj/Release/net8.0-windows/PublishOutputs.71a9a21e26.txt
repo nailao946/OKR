@@ -1,6 +1,0 @@
-C:\Users\admin\Desktop\OKR\ME.exe
-C:\Users\admin\Desktop\OKR\ME.dll
-C:\Users\admin\Desktop\OKR\ME.deps.json
-C:\Users\admin\Desktop\OKR\ME.runtimeconfig.json
-C:\Users\admin\Desktop\OKR\ME.dll.config
-C:\Users\admin\Desktop\OKR\ME.pdb

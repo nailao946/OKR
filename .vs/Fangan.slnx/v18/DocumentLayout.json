@@ -7,6 +7,14 @@
       "RelativeMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|solutionrelative:me\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|c:\\users\\admin\\desktop\\me\\fangan\\me\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|solutionrelative:me\\app.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|c:\\users\\admin\\desktop\\me\\fangan\\me\\views\\goalsview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|solutionrelative:me\\views\\goalsview.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|c:\\users\\admin\\desktop\\me\\fangan\\me\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{73C9E9D7-3ABB-C2D1-452D-BC2CB31F9700}|ME\\ME.csproj|solutionrelative:me\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
@@ -18,8 +26,31 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "App.xaml",
+              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\App.xaml",
+              "RelativeDocumentMoniker": "ME\\App.xaml",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\App.xaml",
+              "RelativeToolTip": "ME\\App.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-06-24T02:57:40.32Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "GoalsView.xaml",
+              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\GoalsView.xaml",
+              "RelativeDocumentMoniker": "ME\\Views\\GoalsView.xaml",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\GoalsView.xaml",
+              "RelativeToolTip": "ME\\Views\\GoalsView.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-06-24T02:23:44.546Z"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -34,7 +65,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "MainWindow.xaml.cs",
               "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\MainWindow.xaml.cs",
               "RelativeDocumentMoniker": "ME\\MainWindow.xaml.cs",

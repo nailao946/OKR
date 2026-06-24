@@ -171,7 +171,9 @@ namespace ME.Views
                     var target = task.QuantitativeTarget.Value;
                     item.ProgressValue = Math.Min(current / target * 100, 100);
                     item.ProgressText = $"{current:F0}/{target:F0}";
-                    item.ProgressBrush = new SolidColorBrush(Color.FromRgb(0, 122, 255));
+                    item.ProgressBrush = item.TagVisibility == Visibility.Visible
+                        ? item.TagColorBrush
+                        : new SolidColorBrush(Color.FromRgb(0, 122, 255));
                 }
                 else if (task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom &&
                          task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
@@ -182,7 +184,9 @@ namespace ME.Views
                     var target = task.RecurringTargetCount.Value;
                     item.ProgressValue = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
                     item.ProgressText = $"{current}/{target}";
-                    item.ProgressBrush = new SolidColorBrush(Color.FromRgb(52, 199, 89));
+                    item.ProgressBrush = item.TagVisibility == Visibility.Visible
+                        ? item.TagColorBrush
+                        : new SolidColorBrush(Color.FromRgb(52, 199, 89));
                 }
                 else
                 {

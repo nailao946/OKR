@@ -71,7 +71,15 @@ namespace ME
                 var colorStr = settingsRepo.GetValue(SettingsKeys.WindowBorderColor, "#007AFF");
                 if (WindowBorder != null)
                 {
-                    WindowBorder.BorderBrush = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorStr));
+                    if (colorStr == "NONE")
+                    {
+                        WindowBorder.BorderThickness = new Thickness(0);
+                    }
+                    else
+                    {
+                        WindowBorder.BorderThickness = new Thickness(1);
+                        WindowBorder.BorderBrush = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorStr));
+                    }
                 }
             }
             catch { }
@@ -236,7 +244,7 @@ namespace ME
 
         private void Window_Activated(object sender, EventArgs e)
         {
-            WindowBorder.BorderBrush = (SolidColorBrush)FindResource("BorderBrush");
+            ApplyWindowBorderColor();
         }
 
         private void Window_Deactivated(object sender, EventArgs e)

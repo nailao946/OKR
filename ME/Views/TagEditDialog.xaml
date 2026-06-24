@@ -59,8 +59,9 @@
                             <StackPanel>
                                 <TextBlock Text="标签名称" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                                 <TextBox x:Name="TagNameBox" Style="{DynamicResource InputTextBoxStyle}"
-                                         Height="36" FontSize="13" Margin="0,0,0,12"
-                                         VerticalContentAlignment="Center" />
+                                         Height="40" FontSize="14" Margin="0,0,0,12"
+                                         VerticalContentAlignment="Center"
+                                         Padding="10,8" />
 
                                 <TextBlock Text="标签颜色" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
                                 <WrapPanel x:Name="ColorPanel" Margin="0,0,0,12">
@@ -111,7 +112,8 @@
                                             Background="#007AFF" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                             Margin="0,0,8,0" VerticalAlignment="Center" />
                                     <TextBox x:Name="CustomColorBox" Grid.Column="1" Style="{DynamicResource InputTextBoxStyle}"
-                                             Height="36" FontSize="13" VerticalContentAlignment="Center" />
+                                             Height="40" FontSize="14" VerticalContentAlignment="Center"
+                                             Padding="10,8" />
                                     <Button Grid.Column="2" Content="选色" Click="PickColor_Click"
                                             Style="{DynamicResource SecondaryButtonStyle}" Padding="10,6" Margin="6,0,0,0" FontSize="11" />
                                     <Button Grid.Column="3" Content="应用" Click="ApplyCustomColor_Click"
