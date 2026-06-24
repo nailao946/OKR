@@ -37,8 +37,7 @@
                 <StackPanel>
                     <TextBlock Text="标签名称" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                     <TextBox x:Name="NameBox" Style="{DynamicResource InputTextBoxStyle}"
-                             Height="36" FontSize="13" Margin="0,0,0,14"
-                             VerticalContentAlignment="Center" />
+                             Height="36" FontSize="13" Margin="0,0,0,14" />
 
                     <TextBlock Text="颜色" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
                     <ItemsControl x:Name="ColorPalette" Margin="0,0,0,14">
@@ -51,8 +50,7 @@
 
                     <TextBlock Text="自定义颜色 (Hex)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                     <TextBox x:Name="ColorBox" Style="{DynamicResource InputTextBoxStyle}"
-                             Height="36" FontSize="13" TextChanged="ColorBox_TextChanged" Margin="0,0,0,14"
-                             VerticalContentAlignment="Center" />
+                             Height="36" FontSize="13" TextChanged="ColorBox_TextChanged" Margin="0,0,0,14" />
 
                     <TextBlock Text="备注" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                     <TextBox x:Name="NotesBox" Style="{DynamicResource InputTextBoxStyle}"

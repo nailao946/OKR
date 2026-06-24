@@ -104,7 +104,7 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource PrimaryBrush}" />
-        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
@@ -113,10 +113,11 @@
                     <Border x:Name="border" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8" Padding="{TemplateBinding Padding}"
+                            CornerRadius="8"
                             SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
