@@ -50,7 +50,7 @@ namespace ME.Services
 
         public TimeTimerService()
         {
-            _timer = new Timer(100);
+            _timer = new Timer(1000);
             _timer.Elapsed += OnTimerElapsed;
         }
 
@@ -65,6 +65,19 @@ namespace ME.Services
             _sessionStart = DateTime.Now;
             State = TimeTimerState.Running;
             _timer.Start();
+        }
+
+        public void SetElapsed(TimeSpan elapsed)
+        {
+            if (Mode == TimeTimerMode.CountUp)
+            {
+                _accumulated = elapsed;
+            }
+            else
+            {
+                _accumulated = elapsed;
+                _countdownTarget = TimeSpan.FromMinutes(FocusMinutes);
+            }
         }
 
         public void Pause()

@@ -73,7 +73,7 @@ namespace ME.Views
                 if (child is Border b)
                 {
                     var bg = b.Background as SolidColorBrush;
-                    if (bg != null && bg.Color.ToString().Equals(color.TrimStart('#'), StringComparison.OrdinalIgnoreCase))
+                    if (bg != null && ColorToHex(bg.Color).Equals(color.TrimStart('#'), StringComparison.OrdinalIgnoreCase))
                     {
                         b.BorderBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
                     }
@@ -83,6 +83,11 @@ namespace ME.Views
                     }
                 }
             }
+        }
+
+        private static string ColorToHex(Color c)
+        {
+            return $"{c.R:X2}{c.G:X2}{c.B:X2}";
         }
 
         private void ColorBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)

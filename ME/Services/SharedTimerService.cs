@@ -11,6 +11,8 @@ namespace ME.Services
         private static readonly TimeTagRepository _tagRepo;
         private static int _selectedTagId;
         private static TimeRecord _currentRecord;
+        private static string _cachedTagName = "未计时";
+        private static string _cachedTagColor = "#808080";
 
         public static event Action<string, string, string> TimerUpdated;
         public static event Action<bool> RunningStateChanged;
@@ -33,19 +35,19 @@ namespace ME.Services
 
         private static void OnTick(TimeSpan time)
         {
-            var tag = _selectedTagId > 0 ? _tagRepo.GetTagById(_selectedTagId) : null;
-            var tagName = tag?.Name ?? "未计时";
-            var tagColor = tag?.Color ?? "#808080";
             var timeStr = _timer.Mode == TimeTimerMode.CountDown
                 ? $"{time.Minutes:D2}:{time.Seconds:D2}"
                 : $"{time.Hours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
-            TimerUpdated?.Invoke(timeStr, tagName, tagColor);
+            TimerUpdated?.Invoke(timeStr, _cachedTagName, _cachedTagColor);
         }
 
         public static void StartWithTag(int tagId)
         {
             StopCurrent();
             _selectedTagId = tagId;
+            var tag = _tagRepo.GetTagById(tagId);
+            _cachedTagName = tag?.Name ?? "未计时";
+            _cachedTagColor = tag?.Color ?? "#808080";
             _recordRepo.StopAllRunningRecords();
             var now = DateTime.Now;
             var record = new TimeRecord
@@ -102,6 +104,10 @@ namespace ME.Services
             {
                 _currentRecord = running;
                 _selectedTagId = running.TagId;
+                var tag = _tagRepo.GetTagById(running.TagId);
+                _cachedTagName = tag?.Name ?? "未计时";
+                _cachedTagColor = tag?.Color ?? "#808080";
+                _timer.SetElapsed(DateTime.Now - running.StartTime);
                 _timer.Start();
                 RunningStateChanged?.Invoke(true);
             }

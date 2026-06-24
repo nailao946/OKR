@@ -22,6 +22,7 @@ namespace ME.Views
         private DispatcherTimer _clockTimer;
         private DateTime _currentMonth;
         private DateTime _selectedDate;
+        private bool _eventsWired = false;
 
         public TimeTrackView()
         {
@@ -33,9 +34,23 @@ namespace ME.Views
             _currentMonth = DateTime.Now;
             _selectedDate = DateTime.Now;
 
-            _timer.Tick += OnTimerTick;
-            SharedTimerService.TimerUpdated += OnSharedTimerUpdated;
-            SharedTimerService.RunningStateChanged += OnSharedRunningStateChanged;
+            Loaded += (s, e) =>
+            {
+                if (!_eventsWired)
+                {
+                    SharedTimerService.TimerUpdated += OnSharedTimerUpdated;
+                    SharedTimerService.RunningStateChanged += OnSharedRunningStateChanged;
+                    _eventsWired = true;
+                }
+            };
+
+            Unloaded += (s, e) =>
+            {
+                SharedTimerService.TimerUpdated -= OnSharedTimerUpdated;
+                SharedTimerService.RunningStateChanged -= OnSharedRunningStateChanged;
+                _eventsWired = false;
+                _clockTimer?.Stop();
+            };
 
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _clockTimer.Tick += (s, e) => ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
@@ -56,23 +71,28 @@ namespace ME.Views
         {
             if (IsVisible)
             {
+                _clockTimer?.Start();
                 LoadTags();
                 LoadRecords();
                 GenerateCalendar();
             }
+            else
+            {
+                _clockTimer?.Stop();
+            }
         }
 
         // ========== TIMER ==========
-        private void OnTimerTick(TimeSpan time)
-        {
-            Dispatcher.BeginInvoke(() => UpdateTimerDisplay(time));
-        }
-
         private void OnSharedTimerUpdated(string time, string tagName, string tagColor)
         {
             Dispatcher.BeginInvoke(() =>
             {
                 TimerText.Text = time;
+                if (SharedTimerService.IsRunning)
+                {
+                    TimerText.Foreground = new SolidColorBrush(
+                        (Color)ColorConverter.ConvertFromString(tagColor));
+                }
             });
         }
 
@@ -82,22 +102,12 @@ namespace ME.Views
             {
                 if (!isRunning)
                 {
-                    TimerText.Text = "00:00:00";
+                    TimerText.Text = _timer.Mode == TimeTimerMode.CountDown
+                        ? $"{_timer.FocusMinutes:D2}:00"
+                        : "00:00:00";
                     TimerText.ClearValue(TextBlock.ForegroundProperty);
                 }
             });
-        }
-
-        private void UpdateTimerDisplay(TimeSpan time)
-        {
-            if (_timer.Mode == TimeTimerMode.CountDown)
-            {
-                TimerText.Text = $"{time.Minutes:D2}:{time.Seconds:D2}";
-            }
-            else
-            {
-                TimerText.Text = $"{time.Hours:D2}:{time.Minutes:D2}:{time.Seconds:D2}";
-            }
         }
 
         // ========== MODE SWITCH ==========
@@ -119,15 +129,44 @@ namespace ME.Views
         private void LoadTags()
         {
             _allTags = _tagRepo.GetAllTags();
-            var selectedTag = _allTags.FirstOrDefault(t => t.IsDefault) ?? _allTags.FirstOrDefault();
-            if (selectedTag != null) _selectedTagId = selectedTag.Id;
 
-            TagItemsControl.ItemsSource = _allTags.Select(t => new
+            var panel = new WrapPanel();
+
+            foreach (var tag in _allTags)
             {
-                Tag = t,
-                Display = t.Name,
-                IsSelected = t.Id == _selectedTagId
-            });
+                bool isSelected = tag.Id == _selectedTagId;
+
+                var border = new Border
+                {
+                    CornerRadius = new CornerRadius(12),
+                    Padding = new Thickness(10, 5, 10, 5),
+                    Margin = new Thickness(0, 0, 6, 6),
+                    Cursor = Cursors.Hand,
+                    Tag = tag,
+                    Background = isSelected
+                        ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color))
+                        : (Brush)FindResource("SystemControlBackgroundChromeMediumBrush"),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
+                    BorderThickness = new Thickness(isSelected ? 0 : 1.5)
+                };
+
+                var text = new TextBlock
+                {
+                    Text = tag.Name,
+                    FontSize = 12,
+                    Foreground = isSelected
+                        ? Brushes.White
+                        : (Brush)FindResource("SystemControlForegroundBaseHighBrush")
+                };
+
+                border.Child = text;
+                border.MouseLeftButtonDown += TagItem_Click;
+                border.MouseRightButtonDown += TagItem_RightClick;
+                panel.Children.Add(border);
+            }
+
+            TagItemsControl.Items.Clear();
+            TagItemsControl.Items.Add(panel);
         }
 
         private void TagItem_Click(object sender, MouseButtonEventArgs e)
@@ -135,15 +174,7 @@ namespace ME.Views
             if (sender is Border border && border.Tag is TimeTag tag)
             {
                 _selectedTagId = tag.Id;
-                if (SharedTimerService.IsRunning)
-                {
-                    SharedTimerService.StopCurrent();
-                    SharedTimerService.StartWithTag(tag.Id);
-                }
-                else
-                {
-                    SharedTimerService.StartWithTag(tag.Id);
-                }
+                SharedTimerService.StartWithTag(tag.Id);
                 LoadTags();
                 LoadRecords();
             }
@@ -168,12 +199,17 @@ namespace ME.Views
                             MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                         {
                             _tagRepo.DeleteTag(tag.Id);
+                            if (_selectedTagId == tag.Id)
+                            {
+                                _selectedTagId = _allTags.FirstOrDefault(t => t.Id != tag.Id)?.Id ?? 0;
+                            }
                             LoadTags();
                         }
                     };
                     menu.Items.Add(deleteItem);
                 }
 
+                menu.PlacementTarget = border;
                 menu.IsOpen = true;
                 e.Handled = true;
             }
@@ -198,6 +234,7 @@ namespace ME.Views
             {
                 _tagRepo.UpdateTag(dialog.Result);
                 LoadTags();
+                LoadRecords();
             }
         }
 
@@ -259,7 +296,8 @@ namespace ME.Views
                     FontSize = 11,
                     Padding = new Thickness(8, 3, 8, 3),
                     Margin = new Thickness(0, 0, 6, 0),
-                    Tag = record
+                    Tag = record,
+                    Style = (Style)FindResource("SecondaryButtonStyle")
                 };
                 editBtn.Click += (s, ev) => EditRecord(record);
                 buttonsPanel.Children.Add(editBtn);
@@ -269,7 +307,8 @@ namespace ME.Views
                     Content = "删除",
                     FontSize = 11,
                     Padding = new Thickness(8, 3, 8, 3),
-                    Tag = record
+                    Tag = record,
+                    Style = (Style)FindResource("SecondaryButtonStyle")
                 };
                 deleteBtn.Click += (s, ev) =>
                 {

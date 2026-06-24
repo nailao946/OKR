@@ -18,7 +18,7 @@ namespace ME.Views
         public RecordEditDialog(TimeRecord record, List<TimeTag> tags)
         {
             InitializeComponent();
-            _tags = tags.Where(t => !t.IsPreset || t.Name == "闲时").ToList();
+            _tags = tags.ToList();
 
             StartTimeBox.Text = record.StartTime.ToString("yyyy-MM-dd HH:mm");
             if (record.EndTime.HasValue)
