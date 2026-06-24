@@ -72,7 +72,7 @@
                                            HorizontalAlignment="Left" Margin="0,2,0,0" />
                                 <StackPanel Visibility="{Binding ProgressVisibility}" Margin="0,4,0,0"
                                             HorizontalAlignment="Left">
-                                    <ProgressBar Value="{Binding ProgressValue}" Maximum="100" Height="10"
+                                    <ProgressBar Value="{Binding ProgressValue}" Maximum="100" Height="40"
                                                  Background="{DynamicResource BackgroundBrush}" 
                                                  Foreground="{Binding ProgressBrush}" />
                                     <TextBlock Text="{Binding ProgressText}" FontSize="9" FontWeight="SemiBold"

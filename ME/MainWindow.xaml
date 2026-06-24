@@ -127,6 +127,7 @@
                 <!-- Workspace: same background, cards provide visual separation -->
                 <Grid Grid.Column="1" x:Name="ContentGrid" Margin="16,0,16,16" />
             </Grid>
+            <TextBox HorizontalAlignment="Left" Margin="1272,86,0,0" Grid.Row="1" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="120"/>
         </Grid>
     </Border>
 </Window>

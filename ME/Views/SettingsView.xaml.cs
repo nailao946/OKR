@@ -140,210 +140,28 @@ namespace ME.Views
 
         private void ShowCustomColorDialog()
         {
-            var dialog = new Window
+            var colorDialog = new System.Windows.Forms.ColorDialog
             {
-                Title = "",
-                Width = 320, Height = 400,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = Window.GetWindow(this),
-                ResizeMode = ResizeMode.NoResize,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                ShowInTaskbar = false,
-                Topmost = true,
-            };
-            dialog.Loaded += (s, ev) =>
-            {
-                // Force remove any system chrome
-                var hwnd = new System.Windows.Interop.WindowInteropHelper(dialog).Handle;
-                var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
-                NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style & ~NativeMethods.WS_SYSMENU);
+                FullOpen = true,
+                AnyColor = true,
+                SolidColorOnly = false
             };
 
-            var mainBorder = new Border
+            var currentColor = _settingsRepo.GetValue(SettingsKeys.WindowBorderColor, "#007AFF");
+            try
             {
-                CornerRadius = new CornerRadius(14),
-                Background = (SolidColorBrush)FindResource("BackgroundBrush"),
-                BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
-                BorderThickness = new Thickness(1),
-            };
-            mainBorder.Effect = new System.Windows.Media.Effects.DropShadowEffect
-            {
-                Opacity = 0.25, BlurRadius = 24, ShadowDepth = 2
-            };
-
-            var mainGrid = new Grid();
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            // Title bar
-            var titleBar = new Border
-            {
-                CornerRadius = new CornerRadius(14, 14, 0, 0),
-                Background = (SolidColorBrush)FindResource("CardBrush"),
-                Padding = new Thickness(16, 0, 16, 0)
-            };
-            var titleGrid = new Grid();
-            titleGrid.Children.Add(new TextBlock
-            {
-                Text = "选择颜色", FontSize = 14, FontWeight = FontWeights.SemiBold,
-                Foreground = (SolidColorBrush)FindResource("TextBrush"),
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            var closeBtn = new Button
-            {
-                Content = "✕", Padding = new Thickness(8, 2, 8, 2), FontSize = 12,
-                Style = (Style)FindResource("SecondaryButtonStyle"),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            closeBtn.Click += (s, ev) => { dialog.DialogResult = false; };
-            titleGrid.Children.Add(closeBtn);
-            titleBar.Child = titleGrid;
-            Grid.SetRow(titleBar, 0);
-            mainGrid.Children.Add(titleBar);
-
-            // Color palette
-            var contentPanel = new StackPanel { Margin = new Thickness(20, 12, 20, 0) };
-
-            var selectedColor = "#FF5722";
-            var previewBorder = new Border
-            {
-                Width = 48, Height = 48, CornerRadius = new CornerRadius(24),
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(selectedColor)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 12),
-                BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
-                BorderThickness = new Thickness(2)
-            };
-            contentPanel.Children.Add(previewBorder);
-
-            var paletteLabel = new TextBlock
-            {
-                Text = "选择颜色", FontSize = 12,
-                Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            contentPanel.Children.Add(paletteLabel);
-
-            var palette = new WrapPanel { Margin = new Thickness(0, 0, 0, 12) };
-            var colors = new[]
-            {
-                "#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#007AFF", "#5856D6",
-                "#AF52DE", "#FF2D55", "#5AC8FA", "#A2845E", "#8E8E93", "#636366",
-                "#FF6B6B", "#FFA94D", "#FFD93D", "#69DB7C", "#4DABF7", "#9775FA",
-                "#F783AC", "#868E96", "#20C997", "#339AF0", "#E64980", "#845EF7",
-                "#FF8787", "#FFC078", "#FFE066", "#8CE99A", "#74C0FC", "#B197FC",
-                "#FAA2C1", "#ADB5BD", "#66D9E8", "#4DABF7", "#E599F7", "#FFD43B"
-            };
-
-            foreach (var c in colors)
-            {
-                var ball = new Border
-                {
-                    Width = 28, Height = 28, CornerRadius = new CornerRadius(14),
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c)),
-                    Margin = new Thickness(0, 0, 6, 6), Cursor = Cursors.Hand,
-                    Tag = c,
-                    BorderBrush = Brushes.Transparent,
-                    BorderThickness = new Thickness(2)
-                };
-                ball.MouseLeftButtonDown += (s, ev) =>
-                {
-                    selectedColor = ball.Tag as string;
-                    previewBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(selectedColor));
-                    foreach (var child in palette.Children)
-                    {
-                        if (child is Border b)
-                        {
-                            b.BorderBrush = b == ball
-                                ? (SolidColorBrush)FindResource("PrimaryBrush")
-                                : Brushes.Transparent;
-                            b.BorderThickness = b == ball ? new Thickness(3) : new Thickness(2);
-                        }
-                    }
-                };
-                palette.Children.Add(ball);
+                var clr = (Color)ColorConverter.ConvertFromString(currentColor);
+                colorDialog.Color = System.Drawing.Color.FromArgb(clr.R, clr.G, clr.B);
             }
-            contentPanel.Children.Add(palette);
+            catch { }
 
-            // Hex input
-            var hexLabel = new TextBlock
+            if (colorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Text = "或输入十六进制颜色", FontSize = 12,
-                Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
-                Margin = new Thickness(0, 0, 0, 6)
-            };
-            contentPanel.Children.Add(hexLabel);
-
-            var hexBox = new TextBox
-            {
-                Text = selectedColor, FontSize = 13,
-                Style = (Style)FindResource("InputTextBoxStyle"),
-                Height = 36, Margin = new Thickness(0, 0, 0, 0),
-                VerticalContentAlignment = VerticalAlignment.Center
-            };
-            hexBox.TextChanged += (s, ev) =>
-            {
-                try
-                {
-                    var clr = (Color)ColorConverter.ConvertFromString(hexBox.Text);
-                    selectedColor = hexBox.Text;
-                    previewBorder.Background = new SolidColorBrush(clr);
-                }
-                catch { }
-            };
-            contentPanel.Children.Add(hexBox);
-
-            Grid.SetRow(contentPanel, 1);
-            mainGrid.Children.Add(contentPanel);
-
-            // Buttons
-            var btnPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(20, 12, 20, 16)
-            };
-            var okBtn = new Button
-            {
-                Content = "确定", Padding = new Thickness(24, 8, 24, 8),
-                Style = (Style)FindResource("PrimaryButtonStyle"), Margin = new Thickness(0, 0, 10, 0),
-                FontSize = 13
-            };
-            var cancelBtn = new Button
-            {
-                Content = "取消", Padding = new Thickness(24, 8, 24, 8),
-                Style = (Style)FindResource("SecondaryButtonStyle"), FontSize = 13
-            };
-            okBtn.Click += (s, ev) => { dialog.DialogResult = true; };
-            cancelBtn.Click += (s, ev) => { dialog.DialogResult = false; };
-            btnPanel.Children.Add(okBtn);
-            btnPanel.Children.Add(cancelBtn);
-            Grid.SetRow(btnPanel, 2);
-            mainGrid.Children.Add(btnPanel);
-
-            mainBorder.Child = mainGrid;
-            var wrapper = new Grid();
-            wrapper.Children.Add(mainBorder);
-            dialog.Content = wrapper;
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var clr = (Color)ColorConverter.ConvertFromString(selectedColor);
-                    var hex = $"#{clr.R:X2}{clr.G:X2}{clr.B:X2}";
-                    _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, hex);
-                    ApplyWindowBorderColor(hex);
-                    UpdateColorBallSelection();
-                }
-                catch
-                {
-                    ConfirmDialog.Show(Window.GetWindow(this), "错误", "无效的颜色格式", "确定");
-                }
+                var c = colorDialog.Color;
+                var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+                _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, hex);
+                ApplyWindowBorderColor(hex);
+                UpdateColorBallSelection();
             }
         }
 
@@ -602,17 +420,5 @@ namespace ME.Views
             public string Name { get; set; }
             public ColorBallDef(string c, string n) { Color = c; Name = n; }
         }
-    }
-
-    internal static class NativeMethods
-    {
-        public const int GWL_STYLE = -16;
-        public const int WS_SYSMENU = 0x00080000;
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
     }
 }

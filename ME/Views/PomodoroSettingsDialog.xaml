@@ -39,7 +39,7 @@
                         <StackPanel>
                             <TextBlock Text="工作时间 (分钟)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                             <TextBox x:Name="WorkMinutesBox" Style="{DynamicResource InputTextBoxStyle}"
-                                     Text="25" Height="36" FontSize="13" VerticalContentAlignment="Center" />
+                                     Text="25" Height="40" FontSize="13" VerticalContentAlignment="Center" />
                         </StackPanel>
                     </Border>
 
@@ -47,7 +47,7 @@
                         <StackPanel>
                             <TextBlock Text="短休息 (分钟)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                             <TextBox x:Name="ShortBreakBox" Style="{DynamicResource InputTextBoxStyle}"
-                                     Text="5" Height="36" FontSize="13" VerticalContentAlignment="Center" />
+                                     Text="5" Height="41" FontSize="13" VerticalContentAlignment="Center" />
                         </StackPanel>
                     </Border>
 
