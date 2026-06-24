@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -29,6 +30,7 @@ namespace ME.Views
             new ColorBallDef("#FF9500", "琥珀橙"),
             new ColorBallDef("#FFD60A", "琥珀黄"),
             new ColorBallDef("NONE", "无边框"),
+            new ColorBallDef("CUSTOM", "自定义"),
         };
 
         public SettingsView()
@@ -75,6 +77,19 @@ namespace ME.Views
                         VerticalAlignment = VerticalAlignment.Center,
                     };
                 }
+                else if (def.Color == "CUSTOM")
+                {
+                    ball.Background = (SolidColorBrush)FindResource("CardBrush");
+                    ball.Child = new TextBlock
+                    {
+                        Text = "+",
+                        FontSize = 18,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = (SolidColorBrush)FindResource("PrimaryBrush"),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                    };
+                }
                 else
                 {
                     ball.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(def.Color));
@@ -89,16 +104,36 @@ namespace ME.Views
         private void UpdateColorBallSelection()
         {
             var currentColor = _settingsRepo.GetValue(SettingsKeys.WindowBorderColor, "#007AFF");
+            var isPreset = ColorBalls.Any(b => b.Color == currentColor);
             foreach (var child in ColorBallsPanel.Children)
             {
                 if (child is Border ball)
                 {
                     var ballColor = ball.Tag as string;
-                    bool isSelected = ballColor == currentColor;
+                    bool isSelected;
+                    if (ballColor == "CUSTOM")
+                        isSelected = !isPreset && currentColor != "NONE";
+                    else
+                        isSelected = ballColor == currentColor;
                     ball.BorderBrush = isSelected
                         ? (SolidColorBrush)FindResource("PrimaryBrush")
                         : Brushes.Transparent;
                     ball.BorderThickness = isSelected ? new Thickness(3) : new Thickness(2);
+
+                    if (ballColor == "CUSTOM" && !isPreset && currentColor != "NONE")
+                    {
+                        try
+                        {
+                            ball.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(currentColor));
+                            if (ball.Child is TextBlock tb) tb.Text = "";
+                        }
+                        catch { }
+                    }
+                    else if (ballColor == "CUSTOM")
+                    {
+                        ball.Background = (SolidColorBrush)FindResource("CardBrush");
+                        if (ball.Child is TextBlock tb) tb.Text = "+";
+                    }
                 }
             }
         }
@@ -108,6 +143,11 @@ namespace ME.Views
             if (sender is Border ball)
             {
                 var color = ball.Tag as string;
+                if (color == "CUSTOM")
+                {
+                    ShowCustomColorDialog();
+                    return;
+                }
                 if (color == "NONE")
                 {
                     _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, "NONE");
@@ -119,6 +159,95 @@ namespace ME.Views
                     ApplyWindowBorderColor(color);
                 }
                 UpdateColorBallSelection();
+            }
+        }
+
+        private void ShowCustomColorDialog()
+        {
+            var dialog = new Window
+            {
+                Title = "自定义颜色",
+                Width = 280, Height = 160,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Window.GetWindow(this),
+                ResizeMode = ResizeMode.NoResize,
+                Background = (SolidColorBrush)FindResource("BackgroundBrush"),
+                BorderBrush = (SolidColorBrush)FindResource("BorderBrush"),
+                BorderThickness = new Thickness(1),
+            };
+
+            var stack = new StackPanel { Margin = new Thickness(16) };
+            stack.Children.Add(new TextBlock
+            {
+                Text = "输入十六进制颜色 (如 #FF5722):",
+                FontSize = 12,
+                Foreground = (SolidColorBrush)FindResource("TextBrush"),
+                Margin = new Thickness(0, 0, 0, 8)
+            });
+
+            var hexBox = new TextBox
+            {
+                Text = "#FF5722",
+                FontSize = 14,
+                Padding = new Thickness(6),
+                Style = (Style)FindResource("InputTextBoxStyle"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            stack.Children.Add(hexBox);
+
+            var previewBorder = new Border
+            {
+                Width = 24, Height = 24,
+                CornerRadius = new CornerRadius(12),
+                Margin = new Thickness(0, 8, 0, 8),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Background = new SolidColorBrush(ColorConverter.ConvertFromString("#FF5722") is Color c ? c : Colors.Gray)
+            };
+            stack.Children.Add(previewBorder);
+
+            hexBox.TextChanged += (s, ev) =>
+            {
+                try
+                {
+                    var c = (Color)ColorConverter.ConvertFromString(hexBox.Text);
+                    previewBorder.Background = new SolidColorBrush(c);
+                }
+                catch { }
+            };
+
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var okBtn = new Button
+            {
+                Content = "确定", Padding = new Thickness(16, 4, 16, 4),
+                Style = (Style)FindResource("PrimaryButtonStyle"), Margin = new Thickness(0, 0, 8, 0)
+            };
+            var cancelBtn = new Button
+            {
+                Content = "取消", Padding = new Thickness(16, 4, 16, 4),
+                Style = (Style)FindResource("SecondaryButtonStyle")
+            };
+            okBtn.Click += (s, ev) => { dialog.DialogResult = true; };
+            cancelBtn.Click += (s, ev) => { dialog.DialogResult = false; };
+            btnPanel.Children.Add(okBtn);
+            btnPanel.Children.Add(cancelBtn);
+            stack.Children.Add(btnPanel);
+
+            dialog.Content = stack;
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var clr = (Color)ColorConverter.ConvertFromString(hexBox.Text);
+                    var hex = $"#{clr.R:X2}{clr.G:X2}{clr.B:X2}";
+                    _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, hex);
+                    ApplyWindowBorderColor(hex);
+                    UpdateColorBallSelection();
+                }
+                catch
+                {
+                    MessageBox.Show("无效的颜色格式", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

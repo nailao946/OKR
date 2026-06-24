@@ -534,7 +534,7 @@ namespace ME.Views
                     : (SolidColorBrush)FindResource("BorderBrush"),
                 Child = new TextBlock
                 {
-                    Text = isCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{task.RecurringCurrentCount ?? 0}" : "")),
+                    Text = isCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{new TaskService().GetCustomRecurringCountOnDate(task.Id, _selectedDate)}" : "")),
                     Foreground = Brushes.White,
                     FontSize = isCompleted ? 12 : 14,
                     FontWeight = FontWeights.Bold,
@@ -618,7 +618,8 @@ namespace ME.Views
                 }
                 else if (isCustomRecurring)
                 {
-                    var current = task.RecurringCurrentCount ?? 0;
+                    var taskSvc = new TaskService();
+                    var current = taskSvc.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
                     var target = task.RecurringTargetCount ?? 1;
                     var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
                     infoPanel.Children.Add(new TextBlock
@@ -727,7 +728,7 @@ namespace ME.Views
                 BorderBrush = task.IsCompleted ? progressColor : (SolidColorBrush)FindResource("BorderBrush"),
                 Child = new TextBlock
                 {
-                    Text = task.IsCompleted ? "✓" : (task.Type == TaskType.Quantitative ? "+" : (isCustomRecurring ? $"{task.RecurringCurrentCount ?? 0}" : "")),
+                    Text = task.IsCompleted ? "✓" : (task.Type == TaskType.Quantitative ? "+" : (isCustomRecurring ? $"{new TaskService().GetCustomRecurringCountOnDate(task.Id, _selectedDate)}" : "")),
                     Foreground = Brushes.White, FontSize = task.IsCompleted ? 8 : 10, FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
@@ -749,7 +750,8 @@ namespace ME.Views
             // Custom recurring progress for subtask
             if (isCustomRecurring)
             {
-                var current = task.RecurringCurrentCount ?? 0;
+                var taskSvc2 = new TaskService();
+                var current = taskSvc2.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
                 var target = task.RecurringTargetCount ?? 1;
                 var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
                 

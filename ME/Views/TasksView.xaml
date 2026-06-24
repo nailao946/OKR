@@ -59,15 +59,15 @@
                     <DockPanel Margin="0,0,0,8">
                         <TextBlock DockPanel.Dock="Left" Text="⏱ 计时器" FontSize="14" FontWeight="Bold"
                                    Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Border x:Name="MiniRunningDot" Width="8" Height="8" CornerRadius="4"
-                                    Background="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock x:Name="MiniRunningTag" Text="" FontSize="11"
-                                       Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                        </StackPanel>
                     </DockPanel>
                     <TextBlock x:Name="MiniTimerText" Text="00:00:00" FontSize="28" FontWeight="Bold"
-                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <Border x:Name="MiniRunningDot" Width="8" Height="8" CornerRadius="4"
+                                Background="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock x:Name="MiniRunningTag" Text="" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
 
                     <!-- Today Stats -->
                     <TextBlock Text="今日统计" FontSize="12" FontWeight="SemiBold"

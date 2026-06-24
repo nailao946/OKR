@@ -364,7 +364,8 @@ namespace ME.Views
             }
             else if (isCustomRecurring)
             {
-                var current = task.RecurringCurrentCount ?? 0;
+                var taskSvc = new TaskService();
+                var current = taskSvc.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
                 var target = task.RecurringTargetCount ?? 1;
                 var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
                 infoRow.Children.Add(new TextBlock
@@ -413,7 +414,10 @@ namespace ME.Views
                 if (isQuant)
                     pbValue = task.QuantitativeTarget > 0 ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0;
                 else
-                    pbValue = task.RecurringTargetCount > 0 ? Math.Min((double)(task.RecurringCurrentCount ?? 0) / task.RecurringTargetCount.Value * 100, 100) : 0;
+                {
+                    var taskSvc2 = new TaskService();
+                    pbValue = task.RecurringTargetCount > 0 ? Math.Min((double)taskSvc2.GetCustomRecurringCountOnDate(task.Id, DateTime.Today) / task.RecurringTargetCount.Value * 100, 100) : 0;
+                }
 
                 mainPanel.Children.Add(new ProgressBar
                 {

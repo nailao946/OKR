@@ -309,7 +309,7 @@ namespace ME.Views
                 BorderBrush = task.IsCompleted ? progressColor : (SolidColorBrush)FindResource("BorderBrush"),
                 Child = new TextBlock
                 {
-                    Text = task.IsCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{task.RecurringCurrentCount ?? 0}" : "")),
+                    Text = task.IsCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{new TaskService().GetCustomRecurringCountOnDate(task.Id, DateTime.Today)}" : "")),
                     Foreground = Brushes.White, FontSize = task.IsCompleted ? 8 : 10, FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
@@ -375,7 +375,8 @@ namespace ME.Views
             // Custom recurring progress bar for subtask
             if (isCustomRecurring)
             {
-                var current = task.RecurringCurrentCount ?? 0;
+                var taskSvc = new TaskService();
+                var current = taskSvc.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
                 var target = task.RecurringTargetCount ?? 1;
                 var pct = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
 

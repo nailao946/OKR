@@ -512,6 +512,7 @@ namespace ME.Views
         private void GanttBorder_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             _ganttWidth = e.NewSize.Width - 16;
+            GanttCanvas.Width = _ganttWidth > 50 ? _ganttWidth : 400;
             if (IsVisible) DrawGanttChart();
         }
 

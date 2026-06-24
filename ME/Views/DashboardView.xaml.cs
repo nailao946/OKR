@@ -177,7 +177,8 @@ namespace ME.Views
                          task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
                 {
                     item.ProgressVisibility = Visibility.Visible;
-                    var current = task.RecurringCurrentCount ?? 0;
+                    var taskSvc = new TaskService();
+                    var current = taskSvc.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
                     var target = task.RecurringTargetCount.Value;
                     item.ProgressValue = target > 0 ? Math.Min((double)current / target * 100, 100) : 0;
                     item.ProgressText = $"{current}/{target}";
