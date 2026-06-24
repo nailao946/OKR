@@ -98,32 +98,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 3,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Styles.xaml",
-              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Resources\\Styles.xaml",
-              "RelativeDocumentMoniker": "ME\\Resources\\Styles.xaml",
-              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Resources\\Styles.xaml",
-              "RelativeToolTip": "ME\\Resources\\Styles.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2026-06-24T14:49:17.892Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "TimeTrackView.xaml",
-              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TimeTrackView.xaml",
-              "RelativeDocumentMoniker": "ME\\Views\\TimeTrackView.xaml",
-              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TimeTrackView.xaml",
-              "RelativeToolTip": "ME\\Views\\TimeTrackView.xaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2026-06-24T14:49:02.715Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Document",
               "DocumentIndex": 3,
@@ -154,10 +130,46 @@
               "Title": "TagEditDialog.xaml",
               "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TagEditDialog.xaml",
               "RelativeDocumentMoniker": "ME\\Views\\TagEditDialog.xaml",
-              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TagEditDialog.xaml*",
-              "RelativeToolTip": "ME\\Views\\TagEditDialog.xaml*",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TagEditDialog.xaml",
+              "RelativeToolTip": "ME\\Views\\TagEditDialog.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T14:48:39.927Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "ME\\MainWindow.xaml",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\MainWindow.xaml",
+              "RelativeToolTip": "ME\\MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-05-01T15:34:57.181Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "TimeTrackView.xaml",
+              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TimeTrackView.xaml",
+              "RelativeDocumentMoniker": "ME\\Views\\TimeTrackView.xaml",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\TimeTrackView.xaml",
+              "RelativeToolTip": "ME\\Views\\TimeTrackView.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-06-24T14:49:02.715Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Styles.xaml",
+              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Resources\\Styles.xaml",
+              "RelativeDocumentMoniker": "ME\\Resources\\Styles.xaml",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Resources\\Styles.xaml",
+              "RelativeToolTip": "ME\\Resources\\Styles.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-06-24T14:49:17.892Z",
               "EditorCaption": ""
             },
             {
@@ -170,18 +182,6 @@
               "RelativeToolTip": "ME\\Views\\SettingsView.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T14:48:39.365Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "MainWindow.xaml",
-              "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\MainWindow.xaml",
-              "RelativeDocumentMoniker": "ME\\MainWindow.xaml",
-              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\MainWindow.xaml*",
-              "RelativeToolTip": "ME\\MainWindow.xaml*",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2026-05-01T15:34:57.181Z",
               "EditorCaption": ""
             },
             {
@@ -238,8 +238,8 @@
               "Title": "PomodoroSettingsDialog.xaml",
               "DocumentMoniker": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\PomodoroSettingsDialog.xaml",
               "RelativeDocumentMoniker": "ME\\Views\\PomodoroSettingsDialog.xaml",
-              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\PomodoroSettingsDialog.xaml*",
-              "RelativeToolTip": "ME\\Views\\PomodoroSettingsDialog.xaml*",
+              "ToolTip": "C:\\Users\\admin\\Desktop\\ME\\Fangan\\ME\\Views\\PomodoroSettingsDialog.xaml",
+              "RelativeToolTip": "ME\\Views\\PomodoroSettingsDialog.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
               "WhenOpened": "2026-06-24T14:48:16.921Z",
               "EditorCaption": ""
