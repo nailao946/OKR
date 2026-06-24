@@ -161,14 +161,23 @@ namespace ME
                 _notifyIcon = new Forms.NotifyIcon();
                 _notifyIcon.Text = "目标地图";
 
-                var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ME.ico");
+                var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hobby_working_dailyroutine_life_time_management_icon_142245.ico");
                 if (File.Exists(iconPath))
                 {
                     _notifyIcon.Icon = new Icon(iconPath);
                 }
                 else
                 {
-                    _notifyIcon.Icon = SystemIcons.Application;
+                    // Fallback: try extract from app resources
+                    try
+                    {
+                        var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                        _notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+                    }
+                    catch
+                    {
+                        _notifyIcon.Icon = SystemIcons.Application;
+                    }
                 }
 
                 var menu = new Forms.ContextMenuStrip();

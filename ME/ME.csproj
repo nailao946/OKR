@@ -15,7 +15,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="hobby_working_dailyroutine_life_time_management_icon_142245.ico" />
+    <Content Include="hobby_working_dailyroutine_life_time_management_icon_142245.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
