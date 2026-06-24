@@ -29,20 +29,7 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <Expander x:Name="IncompleteExpander" IsExpanded="True" Margin="0,0,0,8">
-                    <Expander.Header>
-                        <TextBlock Text="未完成" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextBrush}" />
-                    </Expander.Header>
-                    <StackPanel x:Name="IncompleteGoalsPanel" />
-                </Expander>
-                <Expander x:Name="CompletedExpander" IsExpanded="False" Margin="0,8,0,0">
-                    <Expander.Header>
-                        <TextBlock Text="已完成" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                    </Expander.Header>
-                    <StackPanel x:Name="CompletedGoalsPanel" />
-                </Expander>
+                <StackPanel x:Name="GoalsPanel" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

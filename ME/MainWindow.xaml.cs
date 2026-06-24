@@ -16,6 +16,7 @@ namespace ME
         private ReviewView _reviewView;
         private RecycleBinView _recycleBinView;
         private SettingsView _settingsView;
+        private TimeTrackView _timeTrackView;
         private UserControl _currentView;
 
         public MainWindow()
@@ -51,7 +52,8 @@ namespace ME
                 case 3: ShowView(ref _mapView, () => new MapView(), "目标地图"); break;
                 case 4: ShowView(ref _dashboardView, () => new DashboardView(), "数据看板"); break;
                 case 5: ShowView(ref _reviewView, () => new ReviewView(), "定期盘点"); break;
-                case 6: ShowView(ref _settingsView, () => new SettingsView(), "设置"); break;
+                case 6: ShowView(ref _timeTrackView, () => new TimeTrackView(), "时间追踪"); break;
+                case 7: ShowView(ref _settingsView, () => new SettingsView(), "设置"); break;
             }
         }
 

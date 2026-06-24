@@ -10,11 +10,13 @@ namespace ME.Services
     {
         private readonly TaskRepository _repo;
         private readonly GoalService _goalService;
+        private readonly TaskCompletionRepository _completionRepo;
 
         public TaskService()
         {
             _repo = new TaskRepository();
             _goalService = new GoalService();
+            _completionRepo = new TaskCompletionRepository();
         }
 
         public List<TaskItem> GetAllTasks() => _repo.GetAllTasks();
@@ -48,7 +50,7 @@ namespace ME.Services
                 _repo.UpdateTask(task);
 
                 if (task.GoalId.HasValue)
-                    RecalculateGoalProgress(task.GoalId.Value);
+                    RecalcGoalProgress(task.GoalId.Value);
             }
         }
 
@@ -62,7 +64,7 @@ namespace ME.Services
                 _repo.UpdateTask(task);
 
                 if (task.GoalId.HasValue)
-                    RecalculateGoalProgress(task.GoalId.Value);
+                    RecalcGoalProgress(task.GoalId.Value);
             }
         }
 
@@ -79,7 +81,7 @@ namespace ME.Services
                 _repo.UpdateTask(task);
 
                 if (task.GoalId.HasValue)
-                    RecalculateGoalProgress(task.GoalId.Value);
+                    RecalcGoalProgress(task.GoalId.Value);
             }
         }
 
@@ -150,27 +152,148 @@ namespace ME.Services
             if (task.Type != TaskType.Recurring)
                 return task.IsCompleted;
 
-            // For custom recurring tasks, check if current count reached target
+            string dateStr = date.ToString("yyyy-MM-dd");
+
             if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
             {
-                // If completed today and last completed date matches
-                if (task.IsCompleted && task.LastCompletedDate.HasValue && task.LastCompletedDate.Value.Date == date.Date)
-                    return true;
-                
-                // Check if current count reached target for today
-                if (task.RecurringCurrentCount.HasValue && task.RecurringTargetCount.HasValue && 
-                    task.RecurringCurrentCount >= task.RecurringTargetCount &&
-                    task.LastCompletedDate.HasValue && task.LastCompletedDate.Value.Date == date.Date)
-                    return true;
-                
-                return false;
+                var records = _completionRepo.GetByTaskId(task.Id)
+                    .Where(r => r.Date == dateStr).ToList();
+                return records.Count >= task.RecurringTargetCount.Value;
             }
 
-            // For other recurring tasks, check if completed on this specific date
-            if (task.LastCompletedDate.HasValue && task.LastCompletedDate.Value.Date == date.Date)
-                return true;
+            return _completionRepo.IsCompletedOnDate(task.Id, dateStr);
+        }
 
-            return false;
+        public void RecordCompletion(int taskId, DateTime date)
+        {
+            string dateStr = date.ToString("yyyy-MM-dd");
+            var existing = _completionRepo.GetByTaskAndDate(taskId, dateStr);
+            if (existing == null)
+            {
+                _completionRepo.Insert(new TaskCompletionRecord
+                {
+                    TaskId = taskId,
+                    Date = dateStr,
+                    CompletedAt = DateTime.Now
+                });
+            }
+        }
+
+        public void RemoveCompletion(int taskId, DateTime date)
+        {
+            string dateStr = date.ToString("yyyy-MM-dd");
+            _completionRepo.DeleteByTaskAndDate(taskId, dateStr);
+        }
+
+        public void RecordCustomRecurringCompletion(int taskId, DateTime date)
+        {
+            string dateStr = date.ToString("yyyy-MM-dd");
+            _completionRepo.Insert(new TaskCompletionRecord
+            {
+                TaskId = taskId,
+                Date = dateStr,
+                CompletedAt = DateTime.Now
+            });
+        }
+
+        public int GetCustomRecurringCountOnDate(int taskId, DateTime date)
+        {
+            string dateStr = date.ToString("yyyy-MM-dd");
+            return _completionRepo.GetByTaskId(taskId).Count(r => r.Date == dateStr);
+        }
+
+        public (double completed, double total) CalcTaskProgress(TaskItem task)
+        {
+            if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue && task.StartDate.HasValue && task.EndDate.HasValue)
+            {
+                return CalcRecurringTaskProgress(task);
+            }
+            else if (task.Type == TaskType.Quantitative && task.QuantitativeTarget.HasValue && task.QuantitativeTarget > 0)
+            {
+                double current = task.QuantitativeCurrent ?? 0;
+                return (current, task.QuantitativeTarget.Value);
+            }
+            else
+            {
+                return (task.IsCompleted ? 1 : 0, 1);
+            }
+        }
+
+        private (double completed, double total) CalcRecurringTaskProgress(TaskItem task)
+        {
+            if (!task.StartDate.HasValue || !task.EndDate.HasValue)
+                return (0, 0);
+
+            var start = task.StartDate.Value.Date;
+            var end = task.EndDate.Value.Date;
+            if (start > end) return (0, 0);
+
+            int totalDays = 0;
+            var current = start;
+            while (current <= end)
+            {
+                if (ShouldShowRecurringTaskOnDate(task, current))
+                    totalDays++;
+                current = current.AddDays(1);
+            }
+
+            if (totalDays == 0) return (0, 0);
+
+            int completedDays = _completionRepo.CountCompletedDaysInRange(task.Id,
+                start.ToString("yyyy-MM-dd"), end.ToString("yyyy-MM-dd"));
+
+            return (Math.Min(completedDays, totalDays), totalDays);
+        }
+
+        public (double progress, string detail) CalcGoalProgress(int goalId)
+        {
+            var tasks = _repo.GetTasksByGoalId(goalId);
+            if (tasks.Count == 0) return (0, "");
+
+            double totalCompleted = 0;
+            double totalWork = 0;
+            int recurringDays = 0;
+            int recurringCompleted = 0;
+
+            foreach (var t in tasks)
+            {
+                if (t.IsDeleted) continue;
+
+                if (t.Type == TaskType.Recurring && t.RecurringPattern.HasValue && t.StartDate.HasValue && t.EndDate.HasValue)
+                {
+                    var (c, w) = CalcRecurringTaskProgress(t);
+                    recurringCompleted += (int)c;
+                    recurringDays += (int)w;
+                    totalCompleted += c;
+                    totalWork += w;
+                }
+                else if (t.Type == TaskType.Quantitative && t.QuantitativeTarget.HasValue && t.QuantitativeTarget > 0)
+                {
+                    double current = t.QuantitativeCurrent ?? 0;
+                    totalCompleted += current;
+                    totalWork += t.QuantitativeTarget.Value;
+                }
+                else
+                {
+                    totalCompleted += t.IsCompleted ? 1 : 0;
+                    totalWork += 1;
+                }
+            }
+
+            if (totalWork == 0) return (0, "");
+
+            double progress = totalCompleted / totalWork * 100;
+            string detail = "";
+            if (recurringDays > 0)
+                detail = $"{recurringCompleted}/{recurringDays}天";
+
+            return (Math.Min(progress, 100), detail);
+        }
+
+        public void RecalcGoalProgress(int goalId)
+        {
+            var (progress, _) = CalcGoalProgress(goalId);
+            _goalService.UpdateGoalProgress(goalId, progress);
         }
 
         public List<TaskItem> GetTasksForDate(DateTime date)
@@ -208,21 +331,6 @@ namespace ME.Services
             }
 
             return result;
-        }
-
-        private void RecalculateGoalProgress(int goalId)
-        {
-            var tasks = _repo.GetTasksByGoalId(goalId);
-            if (tasks.Count == 0) return;
-
-            int completed = 0;
-            foreach (var t in tasks)
-            {
-                if (t.IsCompleted) completed++;
-            }
-
-            double progress = (double)completed / tasks.Count * 100;
-            _goalService.UpdateGoalProgress(goalId, progress);
         }
     }
 }

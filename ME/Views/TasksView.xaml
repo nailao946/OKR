@@ -58,22 +58,7 @@
 
         <!-- Task List - built programmatically with tree structure -->
         <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <Expander x:Name="IncompleteExpander" IsExpanded="True" Margin="0,0,0,8">
-                    <Expander.Header>
-                        <TextBlock Text="未完成" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextBrush}" />
-                    </Expander.Header>
-                    <StackPanel x:Name="IncompleteTasksPanel" />
-                </Expander>
-                <Expander x:Name="CompletedExpander" IsExpanded="False" Margin="0,8,0,0">
-                    <Expander.Header>
-                        <TextBlock Text="已完成" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                    </Expander.Header>
-                    <StackPanel x:Name="CompletedTasksPanel" />
-                </Expander>
-            </StackPanel>
+            <StackPanel x:Name="TasksPanel" />
         </ScrollViewer>
     </Grid>
 </UserControl>

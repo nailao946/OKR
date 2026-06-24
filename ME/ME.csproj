@@ -13,4 +13,8 @@
     <StartupObject>ME.App</StartupObject>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ModernWpfUI" Version="0.9.6" />
+  </ItemGroup>
+
 </Project>

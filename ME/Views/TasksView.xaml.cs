@@ -214,7 +214,7 @@ namespace ME.Views
             var todayGoalIds = new HashSet<int>();
             foreach (var goal in allGoals)
             {
-                if (goal.IsArchived || goal.IsDeleted) continue;
+                if (goal.IsDeleted) continue;
                 bool isToday = false;
                 if (goal.StartDate.HasValue && goal.EndDate.HasValue)
                     isToday = goal.StartDate.Value.Date <= _selectedDate.Date && goal.EndDate.Value.Date >= _selectedDate.Date;
@@ -223,30 +223,13 @@ namespace ME.Views
                 if (isToday) todayGoalIds.Add(goal.Id);
             }
 
-            // Reset custom recurring task count if date changed
-            foreach (var task in _vm.Tasks)
-            {
-                if (task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom)
-                {
-                    if (task.LastCompletedDate.HasValue && task.LastCompletedDate.Value.Date != _selectedDate.Date)
-                    {
-                        // Date changed, reset count
-                        task.RecurringCurrentCount = 0;
-                        task.IsCompleted = false;
-                        task.CompletedAt = null;
-                        taskRepo.UpdateTask(task);
-                    }
-                }
-            }
-
             // Separate main tasks and subtasks, build tag color cache
             var mainTasks = new List<TaskItem>();
             var subtasksMap = new Dictionary<int, List<TaskItem>>();
-            var tagColorMap = new Dictionary<int, string>(); // GoalId -> TagColor
+            var tagColorMap = new Dictionary<int, string>();
 
             foreach (var task in _vm.Tasks)
             {
-                // Tag filter
                 if (_filterTagId.HasValue && task.GoalId.HasValue)
                 {
                     var goal = allGoals.Find(g => g.Id == task.GoalId.Value);
@@ -254,54 +237,35 @@ namespace ME.Views
                 }
 
                 bool showByDate = false;
-                
-                // For recurring tasks, use the new logic
+
                 if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
                 {
                     showByDate = taskService.ShouldShowRecurringTaskOnDate(task, _selectedDate);
-                    
-                    // For recurring tasks, reset completion status based on date
+
                     if (showByDate)
                     {
                         bool isCompletedOnDate = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
-                        // Create a copy with adjusted completion status for display
                         var displayTask = new TaskItem
                         {
-                            Id = task.Id,
-                            Title = task.Title,
-                            Description = task.Description,
-                            Type = task.Type,
-                            GoalId = task.GoalId,
-                            ParentTaskId = task.ParentTaskId,
-                            StartDate = task.StartDate,
-                            EndDate = task.EndDate,
+                            Id = task.Id, Title = task.Title, Description = task.Description,
+                            Type = task.Type, GoalId = task.GoalId, ParentTaskId = task.ParentTaskId,
+                            StartDate = task.StartDate, EndDate = task.EndDate,
                             IsCompleted = isCompletedOnDate,
                             CompletedAt = isCompletedOnDate ? task.CompletedAt : null,
-                            IsDeleted = task.IsDeleted,
-                            DeletedAt = task.DeletedAt,
-                            CreatedAt = task.CreatedAt,
-                            UpdatedAt = task.UpdatedAt,
-                            Priority = task.Priority,
-                            RecurringPattern = task.RecurringPattern,
-                            RecurringInterval = task.RecurringInterval,
-                            RecurringDaysOfWeek = task.RecurringDaysOfWeek,
-                            RecurringDayOfMonth = task.RecurringDayOfMonth,
-                            IsLastDayOfMonth = task.IsLastDayOfMonth,
-                            RecurringTimesPerDay = task.RecurringTimesPerDay,
-                            RecurringTimesPerWeek = task.RecurringTimesPerWeek,
-                            RecurringCurrentCount = task.RecurringCurrentCount,
-                            RecurringTargetCount = task.RecurringTargetCount,
-                            IsRecurringCompleted = task.IsRecurringCompleted,
+                            IsDeleted = task.IsDeleted, DeletedAt = task.DeletedAt,
+                            CreatedAt = task.CreatedAt, UpdatedAt = task.UpdatedAt, Priority = task.Priority,
+                            RecurringPattern = task.RecurringPattern, RecurringInterval = task.RecurringInterval,
+                            RecurringDaysOfWeek = task.RecurringDaysOfWeek, RecurringDayOfMonth = task.RecurringDayOfMonth,
+                            IsLastDayOfMonth = task.IsLastDayOfMonth, RecurringTimesPerDay = task.RecurringTimesPerDay,
+                            RecurringTimesPerWeek = task.RecurringTimesPerWeek, RecurringCurrentCount = task.RecurringCurrentCount,
+                            RecurringTargetCount = task.RecurringTargetCount, IsRecurringCompleted = task.IsRecurringCompleted,
                             LastCompletedDate = task.LastCompletedDate,
-                            QuantitativeMode = task.QuantitativeMode,
-                            QuantitativeStart = task.QuantitativeStart,
-                            QuantitativeTarget = task.QuantitativeTarget,
-                            QuantitativeCurrent = task.QuantitativeCurrent,
-                            QuantitativeUnit = task.QuantitativeUnit,
-                            QuantitativeDailyMin = task.QuantitativeDailyMin,
+                            QuantitativeMode = task.QuantitativeMode, QuantitativeStart = task.QuantitativeStart,
+                            QuantitativeTarget = task.QuantitativeTarget, QuantitativeCurrent = task.QuantitativeCurrent,
+                            QuantitativeUnit = task.QuantitativeUnit, QuantitativeDailyMin = task.QuantitativeDailyMin,
                             CountTowardsParent = task.CountTowardsParent
                         };
-                        
+
                         if (task.ParentTaskId.HasValue)
                         {
                             if (!subtasksMap.ContainsKey(task.ParentTaskId.Value))
@@ -316,7 +280,6 @@ namespace ME.Views
                 }
                 else
                 {
-                    // For non-recurring tasks, use the original logic
                     if (task.StartDate.HasValue && task.EndDate.HasValue)
                         showByDate = task.StartDate.Value.Date <= _selectedDate.Date && task.EndDate.Value.Date >= _selectedDate.Date;
                     else if (task.StartDate.HasValue)
@@ -341,7 +304,6 @@ namespace ME.Views
                     }
                 }
 
-                // Cache tag color for goal
                 if (showByDate && task.GoalId.HasValue && !tagColorMap.ContainsKey(task.GoalId.Value))
                 {
                     var goal = allGoals.Find(g => g.Id == task.GoalId.Value);
@@ -353,20 +315,9 @@ namespace ME.Views
                 }
             }
 
-            // Sort main tasks by Priority (descending, matching GoalsView SortOrder pattern)
             mainTasks.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
-            var incomplete = new List<TaskItem>();
-            var completed = new List<TaskItem>();
-            foreach (var t in mainTasks)
-            {
-                if (t.IsCompleted) completed.Add(t);
-                else incomplete.Add(t);
-            }
-
-            // Build tree panels
-            BuildTaskTree(IncompleteTasksPanel, incomplete, subtasksMap, tagColorMap, false);
-            BuildTaskTree(CompletedTasksPanel, completed, subtasksMap, tagColorMap, true);
+            BuildTaskTree(TasksPanel, mainTasks, subtasksMap, tagColorMap, false);
             LoadTodayGoals(subtasksMap, tagColorMap);
         }
 
@@ -1045,62 +996,36 @@ namespace ME.Views
 
             var repo2 = new TaskRepository();
             var taskService = new TaskService();
-            
-            // For recurring tasks, handle completion differently
+
             if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
             {
-                // For custom recurring tasks with multiple times per day
                 if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
                 {
-                    // Get the actual task from repository to update
-                    var actualTask = repo2.GetTaskById(task.Id);
-                    if (actualTask == null) return;
-                    
-                    // Check if completed on this date
-                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(actualTask, _selectedDate);
+                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
                     if (isCompletedToday)
-                    {
-                        // Already completed for today, do nothing
                         return;
-                    }
-                    
-                    // Increment count
-                    actualTask.RecurringCurrentCount = (actualTask.RecurringCurrentCount ?? 0) + 1;
-                    
-                    // Check if reached target
-                    if (actualTask.RecurringCurrentCount >= actualTask.RecurringTargetCount)
+
+                    taskService.RecordCustomRecurringCompletion(task.Id, _selectedDate);
+                    int count = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
+                    if (count >= task.RecurringTargetCount.Value)
                     {
-                        actualTask.IsCompleted = true;
-                        actualTask.CompletedAt = DateTime.Now;
-                        actualTask.LastCompletedDate = _selectedDate;
+                        task.IsCompleted = true;
+                        task.CompletedAt = DateTime.Now;
+                        task.LastCompletedDate = _selectedDate;
+                        repo2.UpdateTask(task);
                     }
-                    
-                    repo2.UpdateTask(actualTask);
                 }
                 else
                 {
-                    // Toggle completion for today
                     bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
                     if (isCompletedToday)
-                    {
-                        // Uncomplete for today
-                        task.LastCompletedDate = null;
-                        task.IsCompleted = false;
-                        task.CompletedAt = null;
-                    }
+                        taskService.RemoveCompletion(task.Id, _selectedDate);
                     else
-                    {
-                        // Complete for today
-                        task.LastCompletedDate = _selectedDate;
-                        task.IsCompleted = true;
-                        task.CompletedAt = DateTime.Now;
-                    }
-                    repo2.UpdateTask(task);
+                        taskService.RecordCompletion(task.Id, _selectedDate);
                 }
             }
             else
             {
-                // For non-recurring tasks, toggle completion normally
                 task.IsCompleted = !task.IsCompleted;
                 task.CompletedAt = task.IsCompleted ? DateTime.Now : (DateTime?)null;
                 repo2.UpdateTask(task);
@@ -1110,10 +1035,7 @@ namespace ME.Views
                 RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo2);
 
             SoundService.PlayCompletionSound();
-            
-            // Notify dashboard to refresh
             EventAggregator.Instance.Publish("TaskCompleted");
-            
             LoadData();
         }
 
@@ -1142,40 +1064,9 @@ namespace ME.Views
             var goal = goalRepo.GetAllGoals().Find(g => g.Id == goalId && !g.IsDeleted);
             if (goal == null) return;
 
-            var allTasks = repo.GetTasksByGoalId(goalId);
-
-            if (goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget > 0)
-            {
-                double total = 0;
-                foreach (var t in allTasks)
-                {
-                    if (!t.IsDeleted && t.CountTowardsParent && t.Type == TaskType.Quantitative)
-                        total += t.QuantitativeCurrent ?? 0;
-                }
-                goal.QuantitativeCurrent = total;
-                goal.Progress = Math.Min(total / goal.QuantitativeTarget.Value * 100, 100);
-                if (goal.Progress >= 100)
-                {
-                    goal.IsArchived = true;
-                    goal.Progress = 100;
-                }
-            }
-            else
-            {
-                if (allTasks.Count == 0) return;
-                int completed = 0;
-                foreach (var t in allTasks)
-                {
-                    if (t.IsCompleted) completed++;
-                }
-                goal.Progress = (double)completed / allTasks.Count * 100;
-                if (goal.Progress >= 100)
-                {
-                    goal.IsArchived = true;
-                    goal.Progress = 100;
-                }
-            }
-
+            var taskService = new TaskService();
+            var (progress, _) = taskService.CalcGoalProgress(goalId);
+            goal.Progress = progress;
             goalRepo.UpdateGoal(goal);
         }
 

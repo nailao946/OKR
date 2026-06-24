@@ -96,21 +96,18 @@ namespace ME.Views
         private void LoadGoalsWithSections()
         {
             _vm.LoadGoals();
-            var incomplete = new List<Goal>();
-            var completed = new List<Goal>();
+            var goals = new List<Goal>();
 
             foreach (var g in _vm.Goals)
             {
                 if (_filterTagId.HasValue && g.TagId != _filterTagId.Value) continue;
-                if (g.IsArchived) completed.Add(g);
-                else incomplete.Add(g);
+                goals.Add(g);
             }
 
-            BuildGoalTree(IncompleteGoalsPanel, incomplete, false);
-            BuildGoalTree(CompletedGoalsPanel, completed, true);
+            BuildGoalTree(GoalsPanel, goals);
         }
 
-        private void BuildGoalTree(StackPanel panel, List<Goal> goals, bool isCompleted)
+        private void BuildGoalTree(StackPanel panel, List<Goal> goals)
         {
             panel.Children.Clear();
 
@@ -122,41 +119,17 @@ namespace ME.Views
                 var card = new Border
                 {
                     Style = (Style)FindResource("CardStyle"),
-                    Cursor = isCompleted ? Cursors.Hand : Cursors.SizeAll,
+                    Cursor = Cursors.SizeAll,
                     Tag = goal
                 };
                 SetupGoalDragDrop(card, goal, goals, panel);
 
                 var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 var progressColor = string.IsNullOrEmpty(goal.TagColor) ? (SolidColorBrush)FindResource("PrimaryBrush")
                     : new SolidColorBrush((Color)ColorConverter.ConvertFromString(goal.TagColor));
-
-                // Completion circle
-                bool isQuant = goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget > 0;
-                var circle = new Border
-                {
-                    Width = 24, Height = 24,
-                    CornerRadius = isQuant ? new CornerRadius(4) : new CornerRadius(12),
-                    BorderThickness = new Thickness(2), VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 12, 0), Cursor = Cursors.Hand,
-                    Background = isQuant ? (isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : progressColor)
-                        : (isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : Brushes.Transparent),
-                    BorderBrush = isCompleted ? (SolidColorBrush)FindResource("PrimaryBrush") : (SolidColorBrush)FindResource("BorderBrush"),
-                    Child = new TextBlock
-                    {
-                        Text = isCompleted ? "✓" : (isQuant ? "+" : ""),
-                        Foreground = Brushes.White, FontSize = isCompleted ? 12 : 14, FontWeight = FontWeights.Bold,
-                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-                    }
-                };
-                circle.Tag = goal;
-                circle.MouseLeftButtonDown += (s, e) => { GoalCircle_Click(s, e); e.Handled = true; };
-                Grid.SetColumn(circle, 0);
-                grid.Children.Add(circle);
 
                 // Text area
                 var textPanel = new StackPanel { IsHitTestVisible = false };
@@ -179,13 +152,12 @@ namespace ME.Views
                 namePanel.Children.Add(new TextBlock
                 {
                     Text = goal.Name, FontSize = 16, FontWeight = FontWeights.SemiBold,
-                    Foreground = isCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
-                    TextDecorations = isCompleted ? TextDecorations.Strikethrough : null
+                    Foreground = (SolidColorBrush)FindResource("TextBrush")
                 });
                 textPanel.Children.Add(namePanel);
 
                 // Expired label for goal
-                bool isGoalExpired = !isCompleted && goal.EndDate.HasValue && goal.EndDate.Value.Date < DateTime.Today;
+                bool isGoalExpired = goal.EndDate.HasValue && goal.EndDate.Value.Date < DateTime.Today;
                 if (isGoalExpired)
                 {
                     textPanel.Children.Add(new TextBlock
@@ -196,54 +168,63 @@ namespace ME.Views
                     });
                 }
 
-                if (!isCompleted)
+                if (!string.IsNullOrEmpty(goal.Description))
                 {
-                    if (!string.IsNullOrEmpty(goal.Description))
+                    textPanel.Children.Add(new TextBlock
                     {
-                        textPanel.Children.Add(new TextBlock
-                        {
-                            Text = goal.Description, FontSize = 11,
-                            Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
-                            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0),
-                            MaxHeight = 35, TextTrimming = TextTrimming.CharacterEllipsis
-                        });
-                    }
-
-                    // Progress + time frame
-                    var infoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
-                    infoPanel.Children.Add(new TextBlock { Text = "进度:", FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
-                    infoPanel.Children.Add(new TextBlock
-                    {
-                        Text = $"{goal.Progress:F0}%", FontSize = 10, FontWeight = FontWeights.SemiBold,
-                        Foreground = progressColor, Margin = new Thickness(3, 0, 8, 0)
+                        Text = goal.Description, FontSize = 11,
+                        Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
+                        TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0),
+                        MaxHeight = 35, TextTrimming = TextTrimming.CharacterEllipsis
                     });
-                    var timeFrame = goal.TimeFrame == GoalTimeFrame.LongTerm ? "长期" : goal.TimeFrame == GoalTimeFrame.Inspiration ? "灵感" : "短期";
-                    infoPanel.Children.Add(new TextBlock { Text = timeFrame, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
-                    if (goal.EndDate.HasValue)
-                    {
-                        var deadlineColor = isGoalExpired 
-                            ? new SolidColorBrush(Color.FromRgb(255, 59, 48))
-                            : (SolidColorBrush)FindResource("SecondaryTextBrush");
-                        infoPanel.Children.Add(new TextBlock
-                        {
-                            Text = $" 截止:{goal.EndDate.Value:yyyy/MM/dd}", FontSize = 10,
-                            Foreground = deadlineColor, Margin = new Thickness(8, 0, 0, 0)
-                        });
-                    }
-                    textPanel.Children.Add(infoPanel);
-
-                    // Progress bar
-                    var pb = new ProgressBar
-                    {
-                        Value = goal.Progress, Maximum = 100, Height = 8,
-                        Margin = new Thickness(0, 5, 0, 0),
-                        Background = (SolidColorBrush)FindResource("BackgroundBrush"),
-                        Foreground = progressColor
-                    };
-                    textPanel.Children.Add(pb);
                 }
 
-                Grid.SetColumn(textPanel, 1);
+                // Progress + time frame + detail
+                var taskService = new TaskService();
+                var (progress, detail) = taskService.CalcGoalProgress(goal.Id);
+                goal.Progress = progress;
+
+                var infoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+                infoPanel.Children.Add(new TextBlock { Text = "进度:", FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
+                infoPanel.Children.Add(new TextBlock
+                {
+                    Text = $"{progress:F0}%", FontSize = 10, FontWeight = FontWeights.SemiBold,
+                    Foreground = progressColor, Margin = new Thickness(3, 0, 0, 0)
+                });
+                if (!string.IsNullOrEmpty(detail))
+                {
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $" ({detail})", FontSize = 10, FontWeight = FontWeights.SemiBold,
+                        Foreground = progressColor
+                    });
+                }
+                var timeFrame = goal.TimeFrame == GoalTimeFrame.LongTerm ? "长期" : goal.TimeFrame == GoalTimeFrame.Inspiration ? "灵感" : "短期";
+                infoPanel.Children.Add(new TextBlock { Text = timeFrame, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"), Margin = new Thickness(8, 0, 0, 0) });
+                if (goal.EndDate.HasValue)
+                {
+                    var deadlineColor = isGoalExpired
+                        ? new SolidColorBrush(Color.FromRgb(255, 59, 48))
+                        : (SolidColorBrush)FindResource("SecondaryTextBrush");
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $" 截止:{goal.EndDate.Value:yyyy/MM/dd}", FontSize = 10,
+                        Foreground = deadlineColor, Margin = new Thickness(8, 0, 0, 0)
+                    });
+                }
+                textPanel.Children.Add(infoPanel);
+
+                // Progress bar
+                var pb = new ProgressBar
+                {
+                    Value = progress, Maximum = 100, Height = 8,
+                    Margin = new Thickness(0, 5, 0, 0),
+                    Background = (SolidColorBrush)FindResource("BackgroundBrush"),
+                    Foreground = progressColor
+                };
+                textPanel.Children.Add(pb);
+
+                Grid.SetColumn(textPanel, 0);
                 grid.Children.Add(textPanel);
 
                 // Buttons
@@ -251,7 +232,7 @@ namespace ME.Views
                 btnPanel.Children.Add(CreateGoalButton("编辑", EditGoal_Click, goal));
                 btnPanel.Children.Add(CreateGoalButton("子任务", AddSubtask_Click, goal));
                 btnPanel.Children.Add(CreateGoalButton("删除", DeleteGoal_Click, goal));
-                Grid.SetColumn(btnPanel, 2);
+                Grid.SetColumn(btnPanel, 1);
                 grid.Children.Add(btnPanel);
 
                 card.Child = grid;
@@ -592,48 +573,7 @@ namespace ME.Views
 
         private void GoalCircle_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is Goal goal)
-            {
-                // Quantitative goal - open input dialog
-                if (goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget > 0 && !goal.IsArchived)
-                {
-                    var taskProxy = new TaskItem
-                    {
-                        Type = TaskType.Quantitative,
-                        QuantitativeMode = goal.QuantitativeMode ?? QuantitativeMode.Accumulate,
-                        QuantitativeStart = goal.QuantitativeStart,
-                        QuantitativeTarget = goal.QuantitativeTarget,
-                        QuantitativeCurrent = goal.QuantitativeCurrent,
-                        QuantitativeUnit = goal.QuantitativeUnit
-                    };
-                    var dialog = new QuantitativeInputDialog(taskProxy) { Owner = Window.GetWindow(this) };
-                    if (dialog.ShowDialog() == true)
-                    {
-                        var repo = new GoalRepository();
-                        goal.QuantitativeCurrent = dialog.NewValue;
-                        if (goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget.Value > 0)
-                        {
-                            goal.Progress = Math.Min(goal.QuantitativeCurrent.Value / goal.QuantitativeTarget.Value * 100, 100);
-                            if (goal.Progress >= 100)
-                            {
-                                goal.IsArchived = true;
-                                goal.Progress = 100;
-                            }
-                        }
-                        repo.UpdateGoal(goal);
-                        SoundService.PlayCompletionSound();
-                        LoadGoalsWithSections();
-                    }
-                    return;
-                }
-
-                var repo2 = new GoalRepository();
-                goal.IsArchived = !goal.IsArchived;
-                goal.Progress = goal.IsArchived ? 100 : 0;
-                repo2.UpdateGoal(goal);
-                SoundService.PlayCompletionSound();
-                LoadGoalsWithSections();
-            }
+            // Goals are folders — they cannot be completed
         }
 
         private void AddGoal_Click(object sender, RoutedEventArgs e)
@@ -720,12 +660,41 @@ namespace ME.Views
         {
             if (sender is FrameworkElement fe && fe.Tag is TaskItem task)
             {
-                if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
+                var repo2 = new TaskRepository();
+                var taskService = new TaskService();
+
+                if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+                {
+                    bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, DateTime.Today);
+
+                    if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
+                    {
+                        if (isCompletedToday)
+                            return;
+
+                        taskService.RecordCustomRecurringCompletion(task.Id, DateTime.Today);
+                        int count = taskService.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
+                        if (count >= task.RecurringTargetCount.Value)
+                        {
+                            task.IsCompleted = true;
+                            task.CompletedAt = DateTime.Now;
+                            task.LastCompletedDate = DateTime.Today;
+                            repo2.UpdateTask(task);
+                        }
+                    }
+                    else
+                    {
+                        if (isCompletedToday)
+                            taskService.RemoveCompletion(task.Id, DateTime.Today);
+                        else
+                            taskService.RecordCompletion(task.Id, DateTime.Today);
+                    }
+                }
+                else if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
                 {
                     var dialog = new QuantitativeInputDialog(task) { Owner = Window.GetWindow(this) };
                     if (dialog.ShowDialog() == true)
                     {
-                        var repo = new TaskRepository();
                         var oldValue = task.QuantitativeCurrent ?? 0;
                         task.QuantitativeCurrent = dialog.NewValue;
                         var delta = task.QuantitativeCurrent.Value - oldValue;
@@ -734,97 +703,33 @@ namespace ME.Views
                             task.IsCompleted = true;
                             task.CompletedAt = DateTime.Now;
                         }
-                        repo.UpdateTask(task);
+                        repo2.UpdateTask(task);
 
-                        if (task.CountTowardsParent)
-                        {
-                            // Sync delta to parent task
-                            if (task.ParentTaskId.HasValue)
-                                SyncParentTaskProgress(task.ParentTaskId.Value, delta, repo);
-
-                            // Recalculate goal progress from all CountTowardsParent subtasks
-                            if (task.GoalId.HasValue)
-                                RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo);
-                        }
+                        if (task.CountTowardsParent && task.ParentTaskId.HasValue)
+                            SyncParentTaskProgress(task.ParentTaskId.Value, delta, repo2);
 
                         SoundService.PlayCompletionSound();
+
+                        if (task.GoalId.HasValue)
+                            RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo2);
+
+                        EventAggregator.Instance.Publish("TaskCompleted");
                         LoadGoalsWithSections();
                     }
                     return;
                 }
-
-                var repo2 = new TaskRepository();
-                var taskService = new TaskService();
-
-                // For recurring tasks, handle completion differently
-                if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
-                {
-                    // For custom recurring tasks with multiple times per day
-                    if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
-                    {
-                        // Get the actual task from repository to update
-                        var actualTask = repo2.GetTaskById(task.Id);
-                        if (actualTask == null) return;
-
-                        // Check if completed on this date
-                        bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(actualTask, DateTime.Today);
-                        if (isCompletedToday)
-                        {
-                            // Already completed for today, do nothing
-                            return;
-                        }
-
-                        // Increment count
-                        actualTask.RecurringCurrentCount = (actualTask.RecurringCurrentCount ?? 0) + 1;
-
-                        // Check if reached target
-                        if (actualTask.RecurringCurrentCount >= actualTask.RecurringTargetCount)
-                        {
-                            actualTask.IsCompleted = true;
-                            actualTask.CompletedAt = DateTime.Now;
-                            actualTask.LastCompletedDate = DateTime.Today;
-                        }
-
-                        repo2.UpdateTask(actualTask);
-                    }
-                    else
-                    {
-                        // Toggle completion for today
-                        bool isCompletedToday = taskService.IsRecurringTaskCompletedOnDate(task, DateTime.Today);
-                        if (isCompletedToday)
-                        {
-                            // Uncomplete for today
-                            task.LastCompletedDate = null;
-                            task.IsCompleted = false;
-                            task.CompletedAt = null;
-                        }
-                        else
-                        {
-                            // Complete for today
-                            task.LastCompletedDate = DateTime.Today;
-                            task.IsCompleted = true;
-                            task.CompletedAt = DateTime.Now;
-                        }
-                        repo2.UpdateTask(task);
-                    }
-                }
                 else
                 {
-                    // For non-recurring tasks, toggle completion normally
                     task.IsCompleted = !task.IsCompleted;
                     task.CompletedAt = task.IsCompleted ? DateTime.Now : (DateTime?)null;
                     repo2.UpdateTask(task);
                 }
 
-                // Recalculate goal progress when a subtask is toggled
                 if (task.GoalId.HasValue)
                     RecalcGoalProgressFromSubtasks(task.GoalId.Value, repo2);
 
                 SoundService.PlayCompletionSound();
-                
-                // Notify dashboard to refresh
                 EventAggregator.Instance.Publish("TaskCompleted");
-                
                 LoadGoalsWithSections();
             }
         }
@@ -855,42 +760,9 @@ namespace ME.Views
             var goal = goalRepo.GetAllGoals().Find(g => g.Id == goalId && !g.IsDeleted);
             if (goal == null) return;
 
-            var allTasks = repo.GetTasksByGoalId(goalId);
-
-            if (goal.QuantitativeTarget.HasValue && goal.QuantitativeTarget > 0)
-            {
-                // Quantitative goal: sum CountTowardsParent subtasks
-                double total = 0;
-                foreach (var t in allTasks)
-                {
-                    if (!t.IsDeleted && t.CountTowardsParent && t.Type == TaskType.Quantitative)
-                        total += t.QuantitativeCurrent ?? 0;
-                }
-                goal.QuantitativeCurrent = total;
-                goal.Progress = Math.Min(total / goal.QuantitativeTarget.Value * 100, 100);
-                if (goal.Progress >= 100)
-                {
-                    goal.IsArchived = true;
-                    goal.Progress = 100;
-                }
-            }
-            else
-            {
-                // Non-quantitative goal: progress from completed task count
-                if (allTasks.Count == 0) return;
-                int completed = 0;
-                foreach (var t in allTasks)
-                {
-                    if (t.IsCompleted) completed++;
-                }
-                goal.Progress = (double)completed / allTasks.Count * 100;
-                if (goal.Progress >= 100)
-                {
-                    goal.IsArchived = true;
-                    goal.Progress = 100;
-                }
-            }
-
+            var taskService = new TaskService();
+            var (progress, _) = taskService.CalcGoalProgress(goalId);
+            goal.Progress = progress;
             goalRepo.UpdateGoal(goal);
         }
 

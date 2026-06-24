@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -10,6 +11,8 @@ namespace ME.Views
 {
     public partial class SettingsView : UserControl
     {
+        public static event Action ThemeChanged;
+
         private readonly BackupService _backupService;
         private readonly SettingsViewModel _viewModel;
 

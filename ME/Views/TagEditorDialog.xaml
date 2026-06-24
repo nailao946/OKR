@@ -1,0 +1,92 @@
+<Window x:Class="ME.Views.TagEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+        WindowStartupLocation="CenterOwner" FontFamily="Segoe UI"
+        Title="编辑标签" Height="440" Width="380"
+        AllowsTransparency="True">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" GlassFrameThickness="0"
+                      ResizeBorderThickness="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <Style x:Key="ColorCircle" TargetType="Border">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="10" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}">
+        <Border.Effect>
+            <DropShadowEffect Opacity="0.3" BlurRadius="20" ShadowDepth="2" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="36" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="44" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                  MouseLeftButtonDown="TitleBar_MouseDown">
+                <TextBlock Text="编辑标签" FontSize="13" FontWeight="SemiBold"
+                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+            </Grid>
+
+            <StackPanel Grid.Row="1" Margin="16,12">
+                <TextBlock Text="标签名称" FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <TextBox x:Name="NameBox" FontSize="14" Padding="8,4" Margin="0,0,0,12"
+                         BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                         Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                         Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+
+                <TextBlock Text="颜色" FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <ItemsControl x:Name="ColorPalette" Margin="0,0,0,6">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+                <TextBlock Text="自定义颜色 (Hex)" FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <TextBox x:Name="ColorBox" FontSize="12" Padding="8,4" Margin="0,0,0,12"
+                         TextChanged="ColorBox_TextChanged"
+                         BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                         Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                         Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+
+                <TextBlock Text="备注" FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <TextBox x:Name="NotesBox" FontSize="12" Padding="8,4" Height="80"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                         Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                         Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,16,10">
+                <Button Content="取消" Width="72" Height="28" Margin="0,0,8,0"
+                        Click="Cancel_Click" Cursor="Hand"
+                        Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                <Button Content="保存" Width="72" Height="28"
+                        Click="Save_Click" Cursor="Hand"
+                        Background="{DynamicResource SystemControlHighlightAccentBrush}"
+                        BorderThickness="0" Foreground="White" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
