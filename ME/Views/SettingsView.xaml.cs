@@ -254,7 +254,6 @@ namespace ME.Views
                 "#FAA2C1", "#ADB5BD", "#66D9E8", "#4DABF7", "#E599F7", "#FFD43B"
             };
 
-            Border selectedBall = null;
             foreach (var c in colors)
             {
                 var ball = new Border

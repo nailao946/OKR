@@ -9,9 +9,14 @@
     <AssemblyName>ME</AssemblyName>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <ApplicationIcon />
+    <ApplicationIcon>hobby_working_dailyroutine_life_time_management_icon_142245.ico</ApplicationIcon>
     <StartupObject>ME.App</StartupObject>
+    <Authors>JOE</Authors>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="hobby_working_dailyroutine_life_time_management_icon_142245.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ModernWpfUI" Version="0.9.6" />
