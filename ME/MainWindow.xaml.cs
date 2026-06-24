@@ -1,7 +1,15 @@
-﻿using System.Windows;
+﻿using System;
+using System.Drawing;
+using System.IO;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using ME.Models;
+using ME.Services;
 using ME.ViewModels;
 using ME.Views;
+using Forms = System.Windows.Forms;
 
 namespace ME
 {
@@ -18,19 +26,149 @@ namespace ME
         private SettingsView _settingsView;
         private TimeTrackView _timeTrackView;
         private UserControl _currentView;
+        private Forms.NotifyIcon _notifyIcon;
+        private bool _isDarkTheme;
 
         public MainWindow()
         {
             InitializeComponent();
             _vm = new MainWindowViewModel();
             DataContext = _vm;
+
+            _isDarkTheme = ThemeService.IsDarkMode();
+            UpdateThemeButton();
+            SetupTrayIcon();
+
+            ThemeService.ThemeChanged += (theme) =>
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    _isDarkTheme = ThemeService.IsDarkMode();
+                    UpdateThemeButton();
+                });
+            };
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            ThemeService.Initialize();
             UpdateView(0);
         }
 
+        private void UpdateThemeButton()
+        {
+            ThemeToggleBtn.Content = _isDarkTheme ? "☀️" : "🌙";
+        }
+
+        // ========== CUSTOM CHROME ==========
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            var newTheme = _isDarkTheme ? "Light" : "Dark";
+            ThemeService.ApplyTheme(newTheme);
+        }
+
+        private void Minimize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void Maximize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            if (_notifyIcon != null && _notifyIcon.Visible)
+        {
+            Hide();
+            _notifyIcon.ShowBalloonTip(2000, "目标地图", "已最小化到系统托盘", Forms.ToolTipIcon.Info);
+        }
+        else
+        {
+            Application.Current.Shutdown();
+        }
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            MaximizeBtn.Content = WindowState == WindowState.Maximized ? "❐" : "□";
+        }
+
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                Maximize_Click(sender, e);
+            }
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                Maximize_Click(sender, e);
+                return;
+            }
+            DragMove();
+        }
+
+        private void TitleBar_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+        }
+
+        private void TitleBar_MouseMove(object sender, MouseEventArgs e)
+        {
+        }
+
+        // ========== TRAY ICON ==========
+        private void SetupTrayIcon()
+        {
+            try
+            {
+                _notifyIcon = new Forms.NotifyIcon();
+                _notifyIcon.Text = "目标地图";
+
+                var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ME.ico");
+                if (File.Exists(iconPath))
+                {
+                    _notifyIcon.Icon = new Icon(iconPath);
+                }
+                else
+                {
+                    _notifyIcon.Icon = SystemIcons.Application;
+                }
+
+                var menu = new Forms.ContextMenuStrip();
+                var showItem = new Forms.ToolStripMenuItem("显示主窗口");
+                showItem.Click += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
+                menu.Items.Add(showItem);
+
+                var exitItem = new Forms.ToolStripMenuItem("退出");
+                exitItem.Click += (s, ev) => { _notifyIcon.Visible = false; Application.Current.Shutdown(); };
+                menu.Items.Add(exitItem);
+
+                _notifyIcon.ContextMenuStrip = menu;
+                _notifyIcon.DoubleClick += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
+
+                var settingsRepo = new Data.SettingsRepository();
+                var minimizeToTray = settingsRepo.GetValue(SettingsKeys.MinimizeToTray, "False");
+                _notifyIcon.Visible = minimizeToTray == "True";
+            }
+            catch
+            {
+            }
+        }
+
+        public void SetTrayVisible(bool visible)
+        {
+            if (_notifyIcon != null)
+                _notifyIcon.Visible = visible;
+        }
+
+        // ========== NAVIGATION ==========
         private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (NavList.SelectedIndex >= 0)
@@ -57,7 +195,7 @@ namespace ME
             }
         }
 
-        private void ShowView<T>(ref T view, System.Func<T> create, string title) where T : UserControl
+        private void ShowView<T>(ref T view, Func<T> create, string title) where T : UserControl
         {
             if (view == null)
             {
@@ -72,6 +210,12 @@ namespace ME
             view.Visibility = Visibility.Visible;
             _currentView = view;
             TitleText.Text = title;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _notifyIcon?.Dispose();
+            base.OnClosed(e);
         }
     }
 }

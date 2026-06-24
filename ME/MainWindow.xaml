@@ -4,81 +4,117 @@
         xmlns:vm="clr-namespace:ME.ViewModels"
         Title="目标地图" Height="700" Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}"
+        Background="Transparent"
         MinWidth="900" MinHeight="600"
-        Loaded="Window_Loaded">
-
-    <Window.DataContext>
-        <vm:MainWindowViewModel />
-    </Window.DataContext>
-
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
-        <Border Grid.Column="0" Background="{StaticResource CardBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-            <DockPanel>
-                <Border DockPanel.Dock="Top" Padding="20,20"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                    <TextBlock Text="目标地图" FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" />
-                </Border>
-                <ListBox x:Name="NavList" ItemsSource="{Binding NavItems}"
-                         SelectionChanged="NavList_SelectionChanged"
-                         Background="Transparent" BorderThickness="0" Margin="10">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="12,10" />
-                            <Setter Property="Margin" Value="0,2" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="border" Background="Transparent"
-                                                CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryBrush}" />
-                                                <Setter Property="TextElement.Foreground" Value="White" />
-                                            </Trigger>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="border" Property="Background" Value="#E5E5EA" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Icon}" FontSize="16" Margin="0,0,10,0" />
-                                <TextBlock Text="{Binding Name}" FontSize="14" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
-        </Border>
-
-        <Grid Grid.Column="1">
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Loaded="Window_Loaded"
+        StateChanged="Window_StateChanged"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="0">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.15" />
+        </Border.Effect>
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="60" />
+                <RowDefinition Height="40" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="0,0,0,1" Padding="24,0">
-                <TextBlock x:Name="TitleText" FontSize="22" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" Background="{DynamicResource CardBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                    MouseLeftButtonUp="TitleBar_MouseLeftButtonUp"
+                    MouseMove="TitleBar_MouseMove">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0">
+                        <TextBlock Text="🎯" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="目标地图" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="TitleText" Grid.Column="1" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
+                               HorizontalAlignment="Center" />
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="ThemeToggleBtn" Content="🌙" FontSize="12"
+                                Width="36" Height="28" Click="ThemeToggle_Click"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                ToolTip="切换主题" VerticalAlignment="Center" />
+                        <Button x:Name="MinimizeBtn" Content="─" FontSize="12"
+                                Width="36" Height="28" Click="Minimize_Click"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Foreground="{DynamicResource TextBrush}" />
+                        <Button x:Name="MaximizeBtn" Content="□" FontSize="12"
+                                Width="36" Height="28" Click="Maximize_Click"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Foreground="{DynamicResource TextBrush}" />
+                        <Button x:Name="CloseBtn" Content="✕" FontSize="12"
+                                Width="36" Height="28" Click="Close_Click"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Foreground="{DynamicResource TextBrush}" />
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <Grid Grid.Row="1" Margin="16" x:Name="ContentGrid" />
+            <!-- Main Content -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                    <ListBox x:Name="NavList" ItemsSource="{Binding NavItems}"
+                             SelectionChanged="NavList_SelectionChanged"
+                             Background="Transparent" BorderThickness="0" Margin="10,10,10,10">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,10" />
+                                <Setter Property="Margin" Value="0,2" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="border" Background="Transparent"
+                                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NavSelectedBrush}" />
+                                                    <Setter Property="TextElement.Foreground" Value="White" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource NavHoverBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Icon}" FontSize="16" Margin="0,0,10,0" />
+                                    <TextBlock Text="{Binding Name}" FontSize="14" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <Grid Grid.Column="1" x:Name="ContentGrid" Margin="16" />
+            </Grid>
         </Grid>
-    </Grid>
+    </Border>
 </Window>

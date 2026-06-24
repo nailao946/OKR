@@ -1,42 +1,101 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Win32;
-using ME.ViewModels;
+using ME.Data;
+using ME.Models;
 using ME.Services;
-using System.Collections.Generic;
-using System.Text.Json;
 
 namespace ME.Views
 {
     public partial class SettingsView : UserControl
     {
-        public static event Action ThemeChanged;
-
         private readonly BackupService _backupService;
-        private readonly SettingsViewModel _viewModel;
+        private readonly SettingsRepository _settingsRepo;
 
         public SettingsView()
         {
             InitializeComponent();
-            _viewModel = new SettingsViewModel();
-            DataContext = _viewModel;
             _backupService = new BackupService();
-            SoundToggle.IsChecked = SoundService.IsEnabled();
-            AutoStartToggle.IsChecked = _viewModel.AutoStart;
+            _settingsRepo = new SettingsRepository();
             BackupModePartial.IsChecked = true;
             UpdateBackupPanelVisibility();
         }
 
-        private void SoundToggle_Changed(object sender, RoutedEventArgs e)
+        private void SettingsView_Loaded(object sender, RoutedEventArgs e)
         {
-            SoundService.SetEnabled(SoundToggle.IsChecked == true);
+            LoadSettings();
+        }
+
+        private void LoadSettings()
+        {
+            var theme = _settingsRepo.GetValue(SettingsKeys.Theme, "Light");
+            foreach (ComboBoxItem item in ThemeCombo.Items)
+            {
+                if ((string)item.Tag == theme)
+                {
+                    ThemeCombo.SelectedItem = item;
+                    break;
+                }
+            }
+
+            var borderColor = _settingsRepo.GetValue(SettingsKeys.WindowBorderColor, "#007AFF");
+            foreach (ComboBoxItem item in BorderColorCombo.Items)
+            {
+                if ((string)item.Tag == borderColor)
+                {
+                    BorderColorCombo.SelectedItem = item;
+                    break;
+                }
+            }
+            UpdateBorderColorPreview(borderColor);
+
+            AutoStartToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.AutoStart, "False") == "True";
+            MinimizeToTrayToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.MinimizeToTray, "False") == "True";
+            TrayBalloonToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.TrayBalloonEnabled, "True") == "True";
+            SoundToggle.IsChecked = SoundService.IsEnabled();
+            FocusSoundToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.FocusSoundEnabled, "True") == "True";
+
+            var lastBackup = _settingsRepo.GetValue(SettingsKeys.LastBackupDate, "");
+            LastBackupText.Text = string.IsNullOrEmpty(lastBackup) ? "" : $"上次备份: {lastBackup}";
+        }
+
+        private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (ThemeCombo.SelectedItem is ComboBoxItem item)
+            {
+                var theme = (string)item.Tag;
+                ThemeService.ApplyTheme(theme);
+            }
+        }
+
+        private void BorderColor_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (BorderColorCombo.SelectedItem is ComboBoxItem item)
+            {
+                var color = (string)item.Tag;
+                _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, color);
+                UpdateBorderColorPreview(color);
+            }
+        }
+
+        private void UpdateBorderColorPreview(string color)
+        {
+            try
+            {
+                BorderColorPreview.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+            }
+            catch { }
         }
 
         private void AutoStartToggle_Changed(object sender, RoutedEventArgs e)
         {
             var isEnabled = AutoStartToggle.IsChecked == true;
-            _viewModel.AutoStart = isEnabled;
+            _settingsRepo.SetValue(SettingsKeys.AutoStart, isEnabled ? "True" : "False");
             SetAutoStart(isEnabled);
         }
 
@@ -44,27 +103,43 @@ namespace ME.Views
         {
             try
             {
-                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                using var key = Registry.CurrentUser.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-                
                 if (key == null) return;
-                
                 var appName = "GoalMap";
                 var appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
-                
-                if (enable)
-                {
-                    key.SetValue(appName, appPath);
-                }
-                else
-                {
-                    key.DeleteValue(appName, false);
-                }
+                if (enable) key.SetValue(appName, appPath);
+                else key.DeleteValue(appName, false);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show($"设置开机自启失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void TrayToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            var isEnabled = MinimizeToTrayToggle.IsChecked == true;
+            _settingsRepo.SetValue(SettingsKeys.MinimizeToTray, isEnabled ? "True" : "False");
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            mainWindow?.SetTrayVisible(isEnabled);
+        }
+
+        private void TrayBalloon_Changed(object sender, RoutedEventArgs e)
+        {
+            var isEnabled = TrayBalloonToggle.IsChecked == true;
+            _settingsRepo.SetValue(SettingsKeys.TrayBalloonEnabled, isEnabled ? "True" : "False");
+        }
+
+        private void SoundToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            SoundService.SetEnabled(SoundToggle.IsChecked == true);
+        }
+
+        private void FocusSound_Changed(object sender, RoutedEventArgs e)
+        {
+            var isEnabled = FocusSoundToggle.IsChecked == true;
+            _settingsRepo.SetValue(SettingsKeys.FocusSoundEnabled, isEnabled ? "True" : "False");
         }
 
         private void BackupMode_Changed(object sender, RoutedEventArgs e)
@@ -76,22 +151,16 @@ namespace ME.Views
         {
             if (PartialBackupPanel != null)
             {
-                PartialBackupPanel.Visibility = BackupModePartial.IsChecked == true 
-                    ? Visibility.Visible 
+                PartialBackupPanel.Visibility = BackupModePartial.IsChecked == true
+                    ? Visibility.Visible
                     : Visibility.Collapsed;
             }
         }
 
         private void Backup_Click(object sender, RoutedEventArgs e)
         {
-            if (BackupModeFull.IsChecked == true)
-            {
-                BackupAllData();
-            }
-            else
-            {
-                BackupPartialData();
-            }
+            if (BackupModeFull.IsChecked == true) BackupAllData();
+            else BackupPartialData();
         }
 
         private void BackupAllData()
@@ -99,32 +168,33 @@ namespace ME.Views
             var dialog = new SaveFileDialog
             {
                 Filter = "JSON备份文件 (*.json)|*.json",
-                FileName = $"me_full_backup_{System.DateTime.Now:yyyyMMdd}"
+                FileName = $"me_full_backup_{DateTime.Now:yyyyMMdd_HHmmss}"
             };
 
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
-                    var appData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
-                    var sourceDir = System.IO.Path.Combine(appData, "ME", "JsonData");
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    var sourceDir = Path.Combine(appData, "ME", "JsonData");
 
-                    if (System.IO.Directory.Exists(sourceDir))
+                    if (Directory.Exists(sourceDir))
                     {
                         var allData = new Dictionary<string, object>();
-                        
-                        foreach (var file in System.IO.Directory.GetFiles(sourceDir, "*.json"))
+                        foreach (var file in Directory.GetFiles(sourceDir, "*.json"))
                         {
-                            var fileName = System.IO.Path.GetFileNameWithoutExtension(file);
-                            var json = System.IO.File.ReadAllText(file);
+                            var fileName = Path.GetFileNameWithoutExtension(file);
+                            var json = File.ReadAllText(file);
                             var data = JsonSerializer.Deserialize<JsonElement>(json);
                             allData[fileName] = data;
                         }
 
                         var options = new JsonSerializerOptions { WriteIndented = true };
                         var fullJson = JsonSerializer.Serialize(allData, options);
-                        System.IO.File.WriteAllText(dialog.FileName, fullJson);
-                        
+                        File.WriteAllText(dialog.FileName, fullJson);
+
+                        _settingsRepo.SetValue(SettingsKeys.LastBackupDate, DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+                        LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm}";
                         MessageBox.Show("全部备份成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
@@ -132,7 +202,7 @@ namespace ME.Views
                         MessageBox.Show("没有数据可备份", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -144,21 +214,21 @@ namespace ME.Views
             var dialog = new SaveFileDialog
             {
                 Filter = "JSON备份文件 (*.json)|*.json",
-                FileName = $"me_backup_{System.DateTime.Now:yyyyMMdd}"
+                FileName = $"me_backup_{DateTime.Now:yyyyMMdd_HHmmss}"
             };
 
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
-                    var appData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
-                    var sourceDir = System.IO.Path.Combine(appData, "ME", "JsonData");
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    var sourceDir = Path.Combine(appData, "ME", "JsonData");
 
-                    if (System.IO.Directory.Exists(sourceDir))
+                    if (Directory.Exists(sourceDir))
                     {
-                        var backupDir = System.IO.Path.GetDirectoryName(dialog.FileName);
-                        if (!System.IO.Directory.Exists(backupDir))
-                            System.IO.Directory.CreateDirectory(backupDir);
+                        var backupDir = Path.GetDirectoryName(dialog.FileName);
+                        if (!Directory.Exists(backupDir))
+                            Directory.CreateDirectory(backupDir);
 
                         var selectedFiles = new List<string>();
                         if (BackupGoals.IsChecked == true) selectedFiles.Add("goals.json");
@@ -168,17 +238,21 @@ namespace ME.Views
                         if (BackupFocus.IsChecked == true) selectedFiles.Add("focus_sessions.json");
                         if (BackupSettings.IsChecked == true) selectedFiles.Add("settings.json");
                         if (BackupTags.IsChecked == true) selectedFiles.Add("tags.json");
+                        if (BackupTimeRecords.IsChecked == true) selectedFiles.Add("time_records.json");
+                        if (BackupTimeTags.IsChecked == true) selectedFiles.Add("time_tags.json");
 
                         foreach (var fileName in selectedFiles)
                         {
-                            var sourceFile = System.IO.Path.Combine(sourceDir, fileName);
-                            if (System.IO.File.Exists(sourceFile))
+                            var sourceFile = Path.Combine(sourceDir, fileName);
+                            if (File.Exists(sourceFile))
                             {
-                                var destFile = System.IO.Path.Combine(backupDir, fileName);
-                                System.IO.File.Copy(sourceFile, destFile, true);
+                                var destFile = Path.Combine(backupDir, fileName);
+                                File.Copy(sourceFile, destFile, true);
                             }
                         }
-                        
+
+                        _settingsRepo.SetValue(SettingsKeys.LastBackupDate, DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+                        LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm}";
                         MessageBox.Show("备份成功！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
@@ -186,7 +260,7 @@ namespace ME.Views
                         MessageBox.Show("没有数据可备份", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -204,16 +278,15 @@ namespace ME.Views
             {
                 try
                 {
-                    var appData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
-                    var targetDir = System.IO.Path.Combine(appData, "ME", "JsonData");
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    var targetDir = Path.Combine(appData, "ME", "JsonData");
 
-                    if (!System.IO.Directory.Exists(targetDir))
-                        System.IO.Directory.CreateDirectory(targetDir);
+                    if (!Directory.Exists(targetDir))
+                        Directory.CreateDirectory(targetDir);
 
                     var selectedFile = dialog.FileName;
-                    var json = System.IO.File.ReadAllText(selectedFile);
-                    
-                    // Check if it's a full backup (contains multiple keys)
+                    var json = File.ReadAllText(selectedFile);
+
                     using var doc = JsonDocument.Parse(json);
                     if (doc.RootElement.ValueKind == JsonValueKind.Object)
                     {
@@ -226,34 +299,32 @@ namespace ME.Views
                                 break;
                             }
                         }
-                        
+
                         if (hasMultipleKeys)
                         {
-                            // Full backup restore
                             var allData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
                             if (allData != null)
                             {
                                 foreach (var kvp in allData)
                                 {
-                                    var filePath = System.IO.Path.Combine(targetDir, $"{kvp.Key}.json");
+                                    var filePath = Path.Combine(targetDir, $"{kvp.Key}.json");
                                     var options = new JsonSerializerOptions { WriteIndented = true };
                                     var dataJson = JsonSerializer.Serialize(kvp.Value, options);
-                                    System.IO.File.WriteAllText(filePath, dataJson);
+                                    File.WriteAllText(filePath, dataJson);
                                 }
                             }
                         }
                         else
                         {
-                            // Single file restore
-                            var fileName = System.IO.Path.GetFileNameWithoutExtension(selectedFile);
-                            var destFile = System.IO.Path.Combine(targetDir, $"{fileName}.json");
-                            System.IO.File.Copy(selectedFile, destFile, true);
+                            var fileName = Path.GetFileNameWithoutExtension(selectedFile);
+                            var destFile = Path.Combine(targetDir, $"{fileName}.json");
+                            File.Copy(selectedFile, destFile, true);
                         }
                     }
-                    
+
                     MessageBox.Show("导入成功！请重启应用使数据生效。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }

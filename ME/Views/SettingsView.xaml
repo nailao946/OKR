@@ -1,75 +1,156 @@
 <UserControl x:Class="ME.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="SettingsView_Loaded">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel>
+        <StackPanel MaxWidth="600" HorizontalAlignment="Left">
+
+            <!-- Theme Settings -->
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="外观设置" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="主题模式" FontSize="13" Foreground="{DynamicResource TextBrush}"
+                                   VerticalAlignment="Center" Width="100" />
+                        <ComboBox x:Name="ThemeCombo" Width="120" SelectionChanged="ThemeCombo_Changed"
+                                  Style="{StaticResource MacComboBoxStyle}">
+                            <ComboBoxItem Content="浅色" Tag="Light" />
+                            <ComboBoxItem Content="深色" Tag="Dark" />
+                            <ComboBoxItem Content="跟随系统" Tag="System" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="窗口边框颜色" FontSize="13" Foreground="{DynamicResource TextBrush}"
+                                   VerticalAlignment="Center" Width="100" />
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="BorderColorPreview" Width="24" Height="24" CornerRadius="4"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,8,0" />
+                            <ComboBox x:Name="BorderColorCombo" Width="120" SelectionChanged="BorderColor_Changed"
+                                      Style="{StaticResource MacComboBoxStyle}">
+                                <ComboBoxItem Content="默认蓝色" Tag="#007AFF" />
+                                <ComboBoxItem Content="深空灰" Tag="#636366" />
+                                <ComboBoxItem Content="森林绿" Tag="#34C759" />
+                                <ComboBoxItem Content="珊瑚红" Tag="#FF3B30" />
+                                <ComboBoxItem Content="靛蓝紫" Tag="#5856D6" />
+                                <ComboBoxItem Content="樱花粉" Tag="#FF2D55" />
+                                <ComboBoxItem Content="琥珀橙" Tag="#FF9500" />
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- System Settings -->
-            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="系统设置" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,12" />
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <CheckBox x:Name="AutoStartToggle" Checked="AutoStartToggle_Changed" Unchecked="AutoStartToggle_Changed"
                                   VerticalAlignment="Center" />
-                        <TextBlock Text="开机自动启动" Foreground="{StaticResource TextBrush}" FontSize="13"
+                        <TextBlock Text="开机自动启动" Foreground="{DynamicResource TextBrush}" FontSize="13"
                                    VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="Windows启动时自动运行目标地图" FontSize="11"
-                               Foreground="{StaticResource SecondaryTextBrush}" Margin="24,0,0,0" />
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="24,0,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Tray Settings -->
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="系统托盘" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox x:Name="MinimizeToTrayToggle" Checked="TrayToggle_Changed" Unchecked="TrayToggle_Changed"
+                                  VerticalAlignment="Center" />
+                        <TextBlock Text="最小化到系统托盘" Foreground="{DynamicResource TextBrush}" FontSize="13"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="关闭窗口时隐藏到托盘而非退出" FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="24,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox x:Name="TrayBalloonToggle" Checked="TrayBalloon_Changed" Unchecked="TrayBalloon_Changed"
+                                  VerticalAlignment="Center" />
+                        <TextBlock Text="显示托盘通知气泡" Foreground="{DynamicResource TextBrush}" FontSize="13"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
             <!-- Sound Settings -->
-            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="音效设置" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,12" />
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <CheckBox x:Name="SoundToggle" Checked="SoundToggle_Changed" Unchecked="SoundToggle_Changed"
                                   VerticalAlignment="Center" />
-                        <TextBlock Text="启用完成音效" Foreground="{StaticResource TextBrush}" FontSize="13"
+                        <TextBlock Text="完成任务音效" Foreground="{DynamicResource TextBrush}" FontSize="13"
                                    VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
                     <TextBlock Text="完成或取消完成任务时播放提示音" FontSize="11"
-                               Foreground="{StaticResource SecondaryTextBrush}" Margin="24,0,0,0" />
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="24,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox x:Name="FocusSoundToggle" Checked="FocusSound_Changed" Unchecked="FocusSound_Changed"
+                                  VerticalAlignment="Center" />
+                        <TextBlock Text="专注计时器音效" Foreground="{DynamicResource TextBrush}" FontSize="13"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="番茄钟/专注计时结束时播放提示音" FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="24,0,0,0" />
                 </StackPanel>
             </Border>
 
             <!-- Data Backup -->
-            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="数据备份" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,12" />
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
                     
-                    <!-- Backup Mode Selection -->
-                    <TextBlock Text="备份模式" FontSize="13" Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+                    <TextBlock Text="备份模式" FontSize="13" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <RadioButton x:Name="BackupModePartial" Content="单独备份" GroupName="BackupMode" 
-                                     Checked="BackupMode_Changed" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                     Checked="BackupMode_Changed" VerticalAlignment="Center" Margin="0,0,16,0"
+                                     Foreground="{DynamicResource TextBrush}" />
                         <RadioButton x:Name="BackupModeFull" Content="全部备份" GroupName="BackupMode" 
-                                     Checked="BackupMode_Changed" VerticalAlignment="Center" />
+                                     Checked="BackupMode_Changed" VerticalAlignment="Center"
+                                     Foreground="{DynamicResource TextBrush}" />
                     </StackPanel>
                     
-                    <!-- Partial Backup Options -->
                     <StackPanel x:Name="PartialBackupPanel" Margin="0,0,0,12">
-                        <TextBlock Text="选择要备份的数据" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Margin="0,0,0,8" />
+                        <TextBlock Text="选择要备份的数据" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8" />
                         <WrapPanel>
-                            <CheckBox x:Name="BackupGoals" Content="目标" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupTasks" Content="任务" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupVisions" Content="愿景" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupReviews" Content="复盘" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupFocus" Content="专注" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupSettings" Content="设置" IsChecked="True" Margin="0,0,12,6" />
-                            <CheckBox x:Name="BackupTags" Content="标签" IsChecked="True" Margin="0,0,12,6" />
+                            <CheckBox x:Name="BackupGoals" Content="目标" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupTasks" Content="任务" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupVisions" Content="愿景" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupReviews" Content="复盘" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupFocus" Content="专注" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupSettings" Content="设置" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupTags" Content="标签" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupTimeRecords" Content="时间记录" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
+                            <CheckBox x:Name="BackupTimeTags" Content="时间标签" IsChecked="True" Margin="0,0,12,6"
+                                      Foreground="{DynamicResource TextBrush}" />
                         </WrapPanel>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="BackupBtn" Content="备份" Click="Backup_Click"
+                        <Button x:Name="BackupBtn" Content="备份数据" Click="Backup_Click"
                                 Style="{StaticResource PrimaryButtonStyle}" Padding="16,8" Margin="0,0,8,0" />
-                        <Button Content="导入" Click="Restore_Click"
+                        <Button Content="导入数据" Click="Restore_Click"
                                 Style="{StaticResource SecondaryButtonStyle}" Padding="16,8" />
                     </StackPanel>
+                    <TextBlock x:Name="LastBackupText" FontSize="11"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
 
@@ -77,12 +158,12 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Text="关于目标地图" FontSize="16" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
-                    <TextBlock Text="版本 1.0.0" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" />
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
+                    <TextBlock Text="版本 1.0.0" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <TextBlock Text="纯本地离线运行，保护您的隐私数据安全" FontSize="12"
-                               Foreground="{StaticResource SecondaryTextBrush}" Margin="0,4,0,0" />
-                    <TextBlock Text="基于 .NET WPF 开发" FontSize="12"
-                               Foreground="{StaticResource SecondaryTextBrush}" Margin="0,4,0,0" />
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0" />
+                    <TextBlock Text="基于 .NET 8 WPF + ModernWpf 开发" FontSize="12"
+                               Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
         </StackPanel>

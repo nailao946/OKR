@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using ME.Services;
 
 namespace ME
 {
@@ -9,6 +10,7 @@ namespace ME
         {
             base.OnStartup(e);
             Data.DatabaseHelper.Initialize();
+            ThemeService.Initialize();
         }
     }
 }

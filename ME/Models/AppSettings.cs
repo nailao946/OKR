@@ -16,6 +16,9 @@ namespace ME.Models
         public const string MinimizeToTray = "MinimizeToTray";
         public const string LastBackupDate = "LastBackupDate";
         public const string DefaultView = "DefaultView";
+        public const string WindowBorderColor = "WindowBorderColor";
+        public const string TraySoundEnabled = "TraySoundEnabled";
+        public const string TrayBalloonEnabled = "TrayBalloonEnabled";
     }
 
     public enum AppTheme

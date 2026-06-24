@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using ME.Data;
 using ME.Models;
@@ -23,6 +24,7 @@ namespace ME.Views
         private DateTime _currentMonth;
         private DateTime _selectedDate;
         private bool _eventsWired = false;
+        private bool _isPomodoroMode = false;
 
         public TimeTrackView()
         {
@@ -53,7 +55,10 @@ namespace ME.Views
             };
 
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _clockTimer.Tick += (s, e) => ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
+            _clockTimer.Tick += (s, e) =>
+            {
+                ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
+            };
             _clockTimer.Start();
 
             ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
@@ -64,6 +69,8 @@ namespace ME.Views
             LoadTags();
             LoadRecords();
             GenerateCalendar();
+            LoadTodayStats();
+            DrawGanttChart();
             SharedTimerService.CheckRunningState();
         }
 
@@ -75,6 +82,8 @@ namespace ME.Views
                 LoadTags();
                 LoadRecords();
                 GenerateCalendar();
+                LoadTodayStats();
+                DrawGanttChart();
             }
             else
             {
@@ -92,6 +101,13 @@ namespace ME.Views
                 {
                     TimerText.Foreground = new SolidColorBrush(
                         (Color)ColorConverter.ConvertFromString(tagColor));
+                    RunningTagText.Text = tagName;
+                    RunningTagDot.Background = new SolidColorBrush(
+                        (Color)ColorConverter.ConvertFromString(tagColor));
+                }
+                if (_isPomodoroMode)
+                {
+                    UpdatePomodoroProgress();
                 }
             });
         }
@@ -106,6 +122,10 @@ namespace ME.Views
                         ? $"{_timer.FocusMinutes:D2}:00"
                         : "00:00:00";
                     TimerText.ClearValue(TextBlock.ForegroundProperty);
+                    RunningTagText.Text = "";
+                    RunningTagDot.Background = Brushes.Transparent;
+                    LoadTodayStats();
+                    DrawGanttChart();
                 }
             });
         }
@@ -116,13 +136,71 @@ namespace ME.Views
             if (_timer == null) return;
             _timer.SetMode(TimeTimerMode.CountUp);
             TimerText.Text = "00:00:00";
+            MinutesInput.IsEnabled = false;
         }
 
         private void CountDownRadio_Checked(object sender, RoutedEventArgs e)
         {
             if (_timer == null) return;
             _timer.SetMode(TimeTimerMode.CountDown);
+            if (int.TryParse(MinutesInput.Text, out int min))
+                _timer.FocusMinutes = min;
             TimerText.Text = $"{_timer.FocusMinutes:D2}:00";
+            MinutesInput.IsEnabled = true;
+        }
+
+        // ========== POMODORO ==========
+        private void PomodoroToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isPomodoroMode = !_isPomodoroMode;
+
+            if (_isPomodoroMode)
+            {
+                CountDownRadio.IsChecked = true;
+                if (int.TryParse(MinutesInput.Text, out int min))
+                    _timer.FocusMinutes = min;
+                _timer.StartPomodoro();
+                PomodoroToggleBtn.Content = "🍅 退出番茄";
+                PomodoroPhaseText.Visibility = Visibility.Visible;
+                PomodoroProgress.Visibility = Visibility.Visible;
+                UpdatePomodoroPhaseText();
+                TimerText.Text = $"{_timer.FocusMinutes:D2}:00";
+            }
+            else
+            {
+                _timer.IsPomodoroMode = false;
+                CountUpRadio.IsChecked = true;
+                PomodoroToggleBtn.Content = "🍅 番茄钟";
+                PomodoroPhaseText.Visibility = Visibility.Collapsed;
+                PomodoroProgress.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void UpdatePomodoroPhaseText()
+        {
+            var phase = _timer.CurrentPhase switch
+            {
+                PomodoroPhase.Work => "工作中",
+                PomodoroPhase.ShortBreak => "短休息",
+                PomodoroPhase.LongBreak => "长休息",
+                _ => ""
+            };
+            PomodoroPhaseText.Text = $"第{_timer.CurrentPomodoro}个番茄 · {phase}";
+        }
+
+        private void UpdatePomodoroProgress()
+        {
+            var total = _timer.CurrentPhase switch
+            {
+                PomodoroPhase.Work => _timer.FocusMinutes * 60.0,
+                PomodoroPhase.ShortBreak => _timer.ShortBreakMinutes * 60.0,
+                PomodoroPhase.LongBreak => _timer.LongBreakMinutes * 60.0,
+                _ => _timer.FocusMinutes * 60.0
+            };
+            var current = _timer.Current.TotalSeconds;
+            var progress = total > 0 ? ((total - current) / total) * 100 : 0;
+            PomodoroProgress.Value = Math.Max(0, Math.Min(100, progress));
+            UpdatePomodoroPhaseText();
         }
 
         // ========== TAGS ==========
@@ -238,11 +316,172 @@ namespace ME.Views
             }
         }
 
+        // ========== TODAY STATS ==========
+        private void LoadTodayStats()
+        {
+            TodayStatsPanel.Children.Clear();
+            var today = DateTime.Now.ToString("yyyy-MM-dd");
+            var records = _recordRepo.GetRecordsByDate(today);
+
+            var tagTimes = new Dictionary<int, TimeSpan>();
+            foreach (var r in records)
+            {
+                var dur = (r.EndTime ?? DateTime.Now) - r.StartTime;
+                if (!tagTimes.ContainsKey(r.TagId))
+                    tagTimes[r.TagId] = TimeSpan.Zero;
+                tagTimes[r.TagId] += dur;
+            }
+
+            var totalTime = tagTimes.Values.Aggregate(TimeSpan.Zero, (a, b) => a + b);
+            var totalText = new TextBlock
+            {
+                Text = $"总计 {totalTime.Hours}h{totalTime.Minutes}m",
+                FontSize = 12,
+                Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush"),
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            TodayStatsPanel.Children.Add(totalText);
+
+            foreach (var kvp in tagTimes.OrderByDescending(k => k.Value))
+            {
+                var tag = _allTags.FirstOrDefault(t => t.Id == kvp.Key);
+                if (tag == null) continue;
+
+                var dot = new Border
+                {
+                    Width = 8, Height = 8, CornerRadius = new CornerRadius(4),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
+                    Margin = new Thickness(6, 0, 3, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                var text = new TextBlock
+                {
+                    Text = $"{tag.Name} {kvp.Value.Hours}h{kvp.Value.Minutes}m",
+                    FontSize = 11,
+                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                TodayStatsPanel.Children.Add(dot);
+                TodayStatsPanel.Children.Add(text);
+            }
+        }
+
+        // ========== GANTT CHART ==========
+        private void DrawGanttChart()
+        {
+            GanttCanvas.Children.Clear();
+            GanttDateLabel.Text = _selectedDate.ToString("MM-dd");
+
+            var records = _recordRepo.GetRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
+            if (records.Count == 0)
+            {
+                var noData = new TextBlock
+                {
+                    Text = "暂无记录",
+                    FontSize = 12,
+                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush")
+                };
+                Canvas.SetLeft(noData, 10);
+                Canvas.SetTop(noData, 80);
+                GanttCanvas.Children.Add(noData);
+                return;
+            }
+
+            double canvasWidth = GanttCanvas.ActualWidth > 0 ? GanttCanvas.ActualWidth : 400;
+            double canvasHeight = 200;
+            double rowHeight = 22;
+            double headerHeight = 20;
+            double leftMargin = 50;
+
+            var tagGroups = records.GroupBy(r => r.TagId).ToList();
+            double y = headerHeight;
+
+            for (int h = 0; h < 24; h += 3)
+            {
+                double x = leftMargin + (h / 24.0) * (canvasWidth - leftMargin);
+                var line = new Line
+                {
+                    X1 = x, Y1 = headerHeight, X2 = x, Y2 = canvasHeight,
+                    Stroke = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                    StrokeThickness = 0.3
+                };
+                GanttCanvas.Children.Add(line);
+
+                var label = new TextBlock
+                {
+                    Text = $"{h:D2}:00",
+                    FontSize = 9,
+                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush")
+                };
+                Canvas.SetLeft(label, x - 15);
+                Canvas.SetTop(label, 0);
+                GanttCanvas.Children.Add(label);
+            }
+
+            foreach (var group in tagGroups)
+            {
+                var tag = _allTags.FirstOrDefault(t => t.Id == group.Key);
+                var color = tag?.Color ?? "#808080";
+                var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+
+                var tagLabel = new TextBlock
+                {
+                    Text = tag?.Name ?? "?",
+                    FontSize = 9,
+                    Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush")
+                };
+                Canvas.SetLeft(tagLabel, 2);
+                Canvas.SetTop(tagLabel, y);
+                GanttCanvas.Children.Add(tagLabel);
+
+                foreach (var record in group)
+                {
+                    double startHour = record.StartTime.TimeOfDay.TotalHours;
+                    double endHour = record.EndTime?.TimeOfDay.TotalHours ?? DateTime.Now.TimeOfDay.TotalHours;
+                    if (endHour < startHour) endHour = 24;
+
+                    double x1 = leftMargin + (startHour / 24.0) * (canvasWidth - leftMargin);
+                    double x2 = leftMargin + (endHour / 24.0) * (canvasWidth - leftMargin);
+                    double barWidth = Math.Max(2, x2 - x1);
+
+                    var bar = new Border
+                    {
+                        Width = barWidth,
+                        Height = 16,
+                        CornerRadius = new CornerRadius(3),
+                        Background = brush,
+                        Opacity = record.EndTime.HasValue ? 0.8 : 1.0
+                    };
+                    Canvas.SetLeft(bar, x1);
+                    Canvas.SetTop(bar, y + 2);
+                    GanttCanvas.Children.Add(bar);
+                }
+
+                y += rowHeight;
+                if (y > canvasHeight - rowHeight) break;
+            }
+
+            GanttCanvas.Height = Math.Max(200, y + 10);
+        }
+
         // ========== RECORDS ==========
         private void LoadRecords()
         {
             var records = _recordRepo.GetRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
             RecordsPanel.Children.Clear();
+
+            if (records.Count == 0)
+            {
+                var noRecords = new TextBlock
+                {
+                    Text = "暂无记录",
+                    FontSize = 12,
+                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                    Margin = new Thickness(4)
+                };
+                RecordsPanel.Children.Add(noRecords);
+                return;
+            }
 
             foreach (var record in records)
             {
@@ -276,7 +515,7 @@ namespace ME.Views
                     var dur = record.EndTime.Value - record.StartTime;
                     var durText = new TextBlock
                     {
-                        Text = $"时长: {(int)dur.TotalHours}小时{dur.Minutes}分钟",
+                        Text = $"时长: {dur.Hours}小时{dur.Minutes}分钟",
                         FontSize = 11,
                         Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
                         Margin = new Thickness(0, 2, 0, 0)
@@ -316,6 +555,8 @@ namespace ME.Views
                     {
                         _recordRepo.DeleteRecord(record.Id);
                         LoadRecords();
+                        LoadTodayStats();
+                        DrawGanttChart();
                     }
                 };
                 buttonsPanel.Children.Add(deleteBtn);
@@ -337,6 +578,8 @@ namespace ME.Views
                 record.TagId = dialog.ResultTagId;
                 _recordRepo.UpdateRecord(record);
                 LoadRecords();
+                LoadTodayStats();
+                DrawGanttChart();
             }
         }
 
@@ -347,6 +590,8 @@ namespace ME.Views
             {
                 _recordRepo.ClearRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
                 LoadRecords();
+                LoadTodayStats();
+                DrawGanttChart();
             }
         }
 
@@ -452,6 +697,7 @@ namespace ME.Views
                     _selectedDate = (DateTime)((Button)s).Tag;
                     GenerateCalendar();
                     LoadRecords();
+                    DrawGanttChart();
                 };
 
                 cell.Children.Add(dayBtn);
