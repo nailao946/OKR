@@ -93,7 +93,24 @@ namespace ME.Views
             CompletionRateText.Text = $"{rate:F0}%";
             CompletedCountText.Text = completed.ToString();
             PendingCountText.Text = pending.ToString();
-            CheckinCountText.Text = completed.ToString();
+
+            // Calculate streak
+            int streak = 0;
+            var checkDate = DateTime.Today;
+            while (checkDate >= startDate)
+            {
+                var dateKey = checkDate.ToString("MM/dd");
+                if (dailyData.ContainsKey(dateKey) && dailyData[dateKey].Completed > 0)
+                {
+                    streak++;
+                    checkDate = checkDate.AddDays(-1);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            StreakDaysText.Text = $"{streak}天";
 
             // Draw line chart
             DrawLineChart(dailyData);
@@ -184,7 +201,7 @@ namespace ME.Views
                     Y1 = y,
                     X2 = canvasWidth - padding,
                     Y2 = y,
-                    Stroke = new SolidColorBrush(Color.FromRgb(229, 229, 234)),
+                    Stroke = (SolidColorBrush)FindResource("BorderBrush"),
                     StrokeThickness = 0.5,
                     StrokeDashArray = new DoubleCollection { 4, 2 }
                 };

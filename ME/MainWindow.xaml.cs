@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ME.Data;
 using ME.Models;
 using ME.Services;
 using ME.ViewModels;
@@ -38,6 +39,7 @@ namespace ME
             _isDarkTheme = ThemeService.IsDarkMode();
             UpdateThemeButton();
             SetupTrayIcon();
+            ApplyWindowBorderColor();
 
             ThemeService.ThemeChanged += (theme) =>
             {
@@ -45,6 +47,7 @@ namespace ME
                 {
                     _isDarkTheme = ThemeService.IsDarkMode();
                     UpdateThemeButton();
+                    ApplyWindowBorderColor();
                 });
             };
         }
@@ -58,6 +61,20 @@ namespace ME
         private void UpdateThemeButton()
         {
             ThemeToggleBtn.Content = _isDarkTheme ? "☀️" : "🌙";
+        }
+
+        private void ApplyWindowBorderColor()
+        {
+            try
+            {
+                var settingsRepo = new SettingsRepository();
+                var colorStr = settingsRepo.GetValue(SettingsKeys.WindowBorderColor, "#007AFF");
+                if (WindowBorder != null)
+                {
+                    WindowBorder.BorderBrush = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colorStr));
+                }
+            }
+            catch { }
         }
 
         // ========== CUSTOM CHROME ==========
@@ -82,14 +99,14 @@ namespace ME
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             if (_notifyIcon != null && _notifyIcon.Visible)
-        {
-            Hide();
-            _notifyIcon.ShowBalloonTip(2000, "目标地图", "已最小化到系统托盘", Forms.ToolTipIcon.Info);
-        }
-        else
-        {
-            Application.Current.Shutdown();
-        }
+            {
+                Hide();
+                _notifyIcon.ShowBalloonTip(2000, "目标地图", "已最小化到系统托盘", Forms.ToolTipIcon.Info);
+            }
+            else
+            {
+                Application.Current.Shutdown();
+            }
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
@@ -153,7 +170,7 @@ namespace ME
                 _notifyIcon.ContextMenuStrip = menu;
                 _notifyIcon.DoubleClick += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
 
-                var settingsRepo = new Data.SettingsRepository();
+                var settingsRepo = new SettingsRepository();
                 var minimizeToTray = settingsRepo.GetValue(SettingsKeys.MinimizeToTray, "False");
                 _notifyIcon.Visible = minimizeToTray == "True";
             }

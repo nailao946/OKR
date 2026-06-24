@@ -15,6 +15,10 @@
     <Color x:Key="AccentGray">#8E8E93</Color>
     <Color x:Key="AccentYellow">#FFCC00</Color>
 
+    <!-- Nav Colors -->
+    <Color x:Key="NavHoverColor">#FFF0F0F5</Color>
+    <Color x:Key="NavSelectedColor">#FF007AFF</Color>
+
     <!-- Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
@@ -22,6 +26,8 @@
     <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}" />
     <SolidColorBrush x:Key="SecondaryTextBrush" Color="{StaticResource SecondaryTextColor}" />
     <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="NavHoverBrush" Color="{StaticResource NavHoverColor}" />
+    <SolidColorBrush x:Key="NavSelectedBrush" Color="{StaticResource NavSelectedColor}" />
 
     <!-- Corner Radius -->
     <CornerRadius x:Key="CardCornerRadius">12</CornerRadius>
@@ -74,6 +80,8 @@
     <!-- Card Style -->
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource CardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}" />
         <Setter Property="Effect" Value="{StaticResource CardShadow}" />
         <Setter Property="Padding" Value="16" />
@@ -86,6 +94,8 @@
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource PrimaryBrush}" />
         <Setter Property="Padding" Value="10,6" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -116,9 +126,9 @@
 
     <!-- ComboBox Style - macOS rounded -->
     <Style x:Key="MacComboBoxStyle" TargetType="ComboBox">
-        <Setter Property="Background" Value="White" />
+        <Setter Property="Background" Value="{StaticResource CardBrush}" />
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
-        <Setter Property="BorderBrush" Value="#FFD1D1D6" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,6" />
         <Setter Property="FontSize" Value="13" />
@@ -138,7 +148,7 @@
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border Background="Transparent" CornerRadius="8">
-                                        <TextBlock Text="▾" FontSize="10" Foreground="#FF8E8E93" 
+                                        <TextBlock Text="▾" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" 
                                                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0" />
                                     </Border>
                                 </ControlTemplate>
@@ -155,7 +165,7 @@
                             Placement="Bottom" PopupAnimation="Slide"
                             Focusable="False">
                             <Border x:Name="DropShadow" CornerRadius="8" 
-                                    Background="White" BorderBrush="#FFD1D1D6" BorderThickness="1"
+                                    Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                     Margin="0,4,0,0" MaxHeight="200"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                                 <ScrollViewer>
@@ -238,7 +248,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#FFF0F0F5" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource NavHoverBrush}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="Transparent" />
@@ -250,7 +260,7 @@
                                 <Condition Property="IsSelected" Value="True" />
                                 <Condition Property="IsMouseOver" Value="True" />
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="Bd" Property="Background" Value="#FFF0F0F5" />
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource NavHoverBrush}" />
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

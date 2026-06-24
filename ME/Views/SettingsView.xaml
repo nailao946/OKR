@@ -36,6 +36,11 @@
                                 <ComboBoxItem Content="樱花粉" Tag="#FF2D55" />
                                 <ComboBoxItem Content="琥珀橙" Tag="#FF9500" />
                             </ComboBox>
+                            <TextBox x:Name="CustomColorInput" Width="80" Margin="6,0,0,0" FontSize="11"
+                                     Style="{StaticResource InputTextBoxStyle}" Padding="4,2"
+                                     VerticalAlignment="Center" />
+                            <Button Content="应用" Click="ApplyCustomColor_Click" FontSize="11" Padding="8,3"
+                                    Margin="4,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -159,7 +164,7 @@
                 <StackPanel>
                     <TextBlock Text="关于目标地图" FontSize="16" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
-                    <TextBlock Text="版本 1.0.0" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    <TextBlock Text="版本 1.1.0" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <TextBlock Text="纯本地离线运行，保护您的隐私数据安全" FontSize="12"
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0" />
                     <TextBlock Text="基于 .NET 8 WPF + ModernWpf 开发" FontSize="12"

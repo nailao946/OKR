@@ -11,124 +11,126 @@
         </Grid.ColumnDefinitions>
 
         <!-- Left Panel -->
-        <Grid Grid.Column="0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <!-- Clock -->
+                <Border Style="{StaticResource CardStyle}" Padding="16,10">
+                    <Grid>
+                        <TextBlock x:Name="ClockText" Text="00:00:00" FontSize="28"
+                                   FontWeight="Medium" HorizontalAlignment="Left"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock x:Name="RunningTagText" Text="" FontSize="12"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0" />
+                            <Border x:Name="RunningTagDot" Width="8" Height="8" CornerRadius="4"
+                                    Background="Transparent" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
-            <!-- Row 0: Digital Clock -->
-            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,8" Padding="16,10">
-                <Grid>
-                    <TextBlock x:Name="ClockText" Text="00:00:00" FontSize="28"
-                               FontWeight="Medium" HorizontalAlignment="Left"
-                               Foreground="{DynamicResource TextBrush}" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock x:Name="RunningTagText" Text="" FontSize="12"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,8,0" />
-                        <Border x:Name="RunningTagDot" Width="8" Height="8" CornerRadius="4"
-                                Background="Transparent" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Row 1: Timer Display -->
-            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,8" Padding="16,12">
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="42"
-                               FontWeight="Bold" TextAlignment="Center"
-                               Foreground="{DynamicResource SecondaryTextBrush}" />
-                    <TextBlock x:Name="PomodoroPhaseText" Text="" FontSize="12"
-                               TextAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"
-                               Margin="0,4,0,0" Visibility="Collapsed" />
-                    <ProgressBar x:Name="PomodoroProgress" Height="4" Margin="0,6,0,0"
-                                 Visibility="Collapsed" />
-                </StackPanel>
-            </Border>
-
-            <!-- Row 2: Mode Switch + Pomodoro -->
-            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,8" Padding="12,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <RadioButton x:Name="CountUpRadio" Content="正计时" IsChecked="True"
-                                 Checked="CountUpRadio_Checked" Margin="0,0,12,0"
-                                 Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                    <RadioButton x:Name="CountDownRadio" Content="倒计时"
-                                 Checked="CountDownRadio_Checked" Margin="0,0,12,0"
-                                 Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
-                        <TextBlock Text="分钟:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0" />
-                        <TextBox x:Name="MinutesInput" Text="25" Width="40" FontSize="12"
-                                 HorizontalContentAlignment="Center" VerticalAlignment="Center"
-                                 Style="{StaticResource InputTextBoxStyle}" Padding="4,2" />
-                    </StackPanel>
-                    <Button x:Name="PomodoroToggleBtn" Grid.Column="3" Content="🍅 番茄钟"
-                            Click="PomodoroToggle_Click" FontSize="11" Padding="8,4"
-                            Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center" />
-                </Grid>
-            </Border>
-
-            <!-- Row 3: Tags -->
-            <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,0,0,8" Padding="12,8" MaxHeight="90">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="标签" FontSize="11" FontWeight="SemiBold"
-                               Margin="0,0,0,6" Foreground="{DynamicResource SecondaryTextBrush}" />
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl x:Name="TagItemsControl">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
-            </Border>
-
-            <!-- Row 4: Time Stats -->
-            <Border Grid.Row="4" Style="{StaticResource CardStyle}" Margin="0,0,0,8" Padding="12,8">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="今日统计" FontSize="11" FontWeight="SemiBold"
-                               Margin="0,0,0,6" Foreground="{DynamicResource SecondaryTextBrush}" />
-                    <StackPanel x:Name="TodayStatsPanel" Orientation="Horizontal" />
-                </DockPanel>
-            </Border>
-
-            <!-- Row 5: Gantt Chart -->
-            <Border Grid.Row="5" Margin="0,0,0,8">
-                <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                        <TextBlock Text="甘特图" FontSize="12" FontWeight="SemiBold"
+                <!-- Timer Display -->
+                <Border Style="{StaticResource CardStyle}" Padding="16,12">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock x:Name="TimerText" Text="00:00:00" FontSize="42"
+                                   FontWeight="Bold" TextAlignment="Center"
                                    Foreground="{DynamicResource SecondaryTextBrush}" />
-                        <TextBlock x:Name="GanttDateLabel" FontSize="11"
-                                   Foreground="{DynamicResource SecondaryTextBrush}"
-                                   HorizontalAlignment="Right" />
-                    </DockPanel>
-                    <Border Style="{StaticResource CardStyle}" Padding="8">
-                        <Canvas x:Name="GanttCanvas" Height="200" />
-                    </Border>
-                </DockPanel>
-            </Border>
+                        <TextBlock x:Name="PomodoroPhaseText" Text="" FontSize="12"
+                                   TextAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   Margin="0,4,0,0" Visibility="Collapsed" />
+                        <ProgressBar x:Name="PomodoroProgress" Height="4" Margin="0,6,0,0"
+                                     Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
 
-            <!-- Row 6: Bottom Buttons -->
-            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                <Button Content="＋标签" Click="AddTag_Click" Padding="10,5" FontSize="11"
-                        Style="{StaticResource SecondaryButtonStyle}" />
-                <Button Content="导出CSV" Click="ExportCsv_Click" Padding="10,5" FontSize="11"
-                        Margin="6,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
+                <!-- Mode Switch + Pomodoro -->
+                <Border Style="{StaticResource CardStyle}" Padding="12,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <RadioButton x:Name="CountUpRadio" Content="正计时" IsChecked="True"
+                                     Checked="CountUpRadio_Checked" Margin="0,0,12,0"
+                                     Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                        <RadioButton x:Name="CountDownRadio" Content="倒计时"
+                                     Checked="CountDownRadio_Checked" Margin="0,0,12,0"
+                                     Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="分钟:" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBox x:Name="MinutesInput" Text="25" Width="40" FontSize="12"
+                                     HorizontalContentAlignment="Center" VerticalAlignment="Center"
+                                     Style="{StaticResource InputTextBoxStyle}" Padding="4,2" />
+                        </StackPanel>
+                        <Button x:Name="PomodoroToggleBtn" Grid.Column="3" Content="🍅 番茄钟"
+                                Click="PomodoroToggle_Click" FontSize="11" Padding="8,4"
+                                Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Tags -->
+                <Border Style="{StaticResource CardStyle}" Padding="12,8" MaxHeight="90">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="标签 (点击开始/停止)" FontSize="11" FontWeight="SemiBold"
+                                   Margin="0,0,0,6" Foreground="{DynamicResource SecondaryTextBrush}" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="TagItemsControl">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <!-- Time Stats -->
+                <Border Style="{StaticResource CardStyle}" Padding="12,8">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="今日统计" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" DockPanel.Dock="Left" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="StatsDayBtn" Content="日" Click="StatsDay_Click" FontSize="10" Padding="6,2"
+                                        Style="{StaticResource PrimaryButtonStyle}" />
+                                <Button x:Name="StatsWeekBtn" Content="周" Click="StatsWeek_Click" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                <Button x:Name="StatsMonthBtn" Content="月" Click="StatsMonth_Click" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                        Style="{StaticResource SecondaryButtonStyle}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <StackPanel x:Name="TodayStatsPanel" Orientation="Horizontal" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Gantt Chart -->
+                <Border Margin="0,0,0,8">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="甘特图" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" />
+                            <TextBlock x:Name="GanttDateLabel" FontSize="11"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       HorizontalAlignment="Right" />
+                        </DockPanel>
+                        <Border Style="{StaticResource CardStyle}" Padding="8">
+                            <Canvas x:Name="GanttCanvas" Height="200" />
+                        </Border>
+                    </DockPanel>
+                </Border>
+
+                <!-- Bottom Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,8">
+                    <Button Content="＋标签" Click="AddTag_Click" Padding="10,5" FontSize="11"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+                    <Button Content="导出CSV" Click="ExportCsv_Click" Padding="10,5" FontSize="11"
+                            Margin="6,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
+                </StackPanel>
             </StackPanel>
-        </Grid>
+        </ScrollViewer>
 
         <!-- Splitter -->
         <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"

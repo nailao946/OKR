@@ -92,6 +92,29 @@ namespace ME.Views
             catch { }
         }
 
+        private void ApplyCustomColor_Click(object sender, RoutedEventArgs e)
+        {
+            var input = CustomColorInput.Text?.Trim();
+            if (string.IsNullOrEmpty(input)) return;
+
+            // Add # prefix if missing
+            if (!input.StartsWith("#"))
+                input = "#" + input;
+
+            try
+            {
+                var color = (Color)ColorConverter.ConvertFromString(input);
+                _settingsRepo.SetValue(SettingsKeys.WindowBorderColor, input);
+                UpdateBorderColorPreview(input);
+                // Deselect combo to show custom color is active
+                BorderColorCombo.SelectedIndex = -1;
+            }
+            catch
+            {
+                MessageBox.Show("无效的颜色格式，请输入如 #FF5733 或 FF5733", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         private void AutoStartToggle_Changed(object sender, RoutedEventArgs e)
         {
             var isEnabled = AutoStartToggle.IsChecked == true;

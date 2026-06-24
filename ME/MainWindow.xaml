@@ -4,17 +4,18 @@
         xmlns:vm="clr-namespace:ME.ViewModels"
         Title="目标地图" Height="700" Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="Transparent"
+        Background="{DynamicResource BackgroundBrush}"
         MinWidth="900" MinHeight="600"
         WindowStyle="None"
-        AllowsTransparency="True"
         Loaded="Window_Loaded"
         StateChanged="Window_StateChanged"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
-    <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="0">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.15" />
-        </Border.Effect>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" GlassFrameThickness="0"
+                      ResizeBorderThickness="6" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+    <Border x:Name="WindowBorder" Background="{DynamicResource BackgroundBrush}" CornerRadius="0"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40" />

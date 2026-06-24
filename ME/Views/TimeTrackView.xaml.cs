@@ -25,6 +25,7 @@ namespace ME.Views
         private DateTime _selectedDate;
         private bool _eventsWired = false;
         private bool _isPomodoroMode = false;
+        private string _statsMode = "day"; // day, week, month
 
         public TimeTrackView()
         {
@@ -69,7 +70,7 @@ namespace ME.Views
             LoadTags();
             LoadRecords();
             GenerateCalendar();
-            LoadTodayStats();
+            LoadStats();
             DrawGanttChart();
             SharedTimerService.CheckRunningState();
         }
@@ -82,7 +83,7 @@ namespace ME.Views
                 LoadTags();
                 LoadRecords();
                 GenerateCalendar();
-                LoadTodayStats();
+                LoadStats();
                 DrawGanttChart();
             }
             else
@@ -124,7 +125,7 @@ namespace ME.Views
                     TimerText.ClearValue(TextBlock.ForegroundProperty);
                     RunningTagText.Text = "";
                     RunningTagDot.Background = Brushes.Transparent;
-                    LoadTodayStats();
+                    LoadStats();
                     DrawGanttChart();
                 }
             });
@@ -203,7 +204,7 @@ namespace ME.Views
             UpdatePomodoroPhaseText();
         }
 
-        // ========== TAGS ==========
+        // ========== TAGS (TOGGLE: click selected = stop) ==========
         private void LoadTags()
         {
             _allTags = _tagRepo.GetAllTags();
@@ -212,7 +213,7 @@ namespace ME.Views
 
             foreach (var tag in _allTags)
             {
-                bool isSelected = tag.Id == _selectedTagId;
+                bool isSelected = tag.Id == _selectedTagId && SharedTimerService.IsRunning;
 
                 var border = new Border
                 {
@@ -223,7 +224,7 @@ namespace ME.Views
                     Tag = tag,
                     Background = isSelected
                         ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color))
-                        : (Brush)FindResource("SystemControlBackgroundChromeMediumBrush"),
+                        : (Brush)FindResource("CardBrush"),
                     BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
                     BorderThickness = new Thickness(isSelected ? 0 : 1.5)
                 };
@@ -234,7 +235,7 @@ namespace ME.Views
                     FontSize = 12,
                     Foreground = isSelected
                         ? Brushes.White
-                        : (Brush)FindResource("SystemControlForegroundBaseHighBrush")
+                        : (Brush)FindResource("TextBrush")
                 };
 
                 border.Child = text;
@@ -251,10 +252,28 @@ namespace ME.Views
         {
             if (sender is Border border && border.Tag is TimeTag tag)
             {
-                _selectedTagId = tag.Id;
-                SharedTimerService.StartWithTag(tag.Id);
+                if (SharedTimerService.IsRunning && _selectedTagId == tag.Id)
+                {
+                    // Same tag clicked while running -> STOP timer
+                    SharedTimerService.StopCurrent();
+                    _selectedTagId = 0;
+                    InsertIdleRecords();
+                }
+                else
+                {
+                    // Different tag or not running -> START
+                    if (SharedTimerService.IsRunning)
+                    {
+                        SharedTimerService.StopCurrent();
+                        InsertIdleRecords();
+                    }
+                    _selectedTagId = tag.Id;
+                    SharedTimerService.StartWithTag(tag.Id);
+                }
                 LoadTags();
                 LoadRecords();
+                LoadStats();
+                DrawGanttChart();
             }
         }
 
@@ -316,12 +335,73 @@ namespace ME.Views
             }
         }
 
-        // ========== TODAY STATS ==========
-        private void LoadTodayStats()
+        // ========== IDLE RECORD AUTO-FILL (参考Time项目) ==========
+        private void InsertIdleRecords()
         {
-            TodayStatsPanel.Children.Clear();
+            // After stopping, fill gaps between records with "闲时" (tagId=1)
             var today = DateTime.Now.ToString("yyyy-MM-dd");
             var records = _recordRepo.GetRecordsByDate(today);
+            if (records.Count < 2) return;
+
+            var idleTag = _allTags.FirstOrDefault(t => t.IsDefault);
+            if (idleTag == null) return;
+
+            var sorted = records.OrderBy(r => r.StartTime).ToList();
+            for (int i = 0; i < sorted.Count - 1; i++)
+            {
+                var current = sorted[i];
+                var next = sorted[i + 1];
+                if (current.EndTime.HasValue && current.EndTime.Value < next.StartTime)
+                {
+                    var gap = next.StartTime - current.EndTime.Value;
+                    if (gap.TotalMinutes >= 1)
+                    {
+                        var idleRecord = new TimeRecord
+                        {
+                            TagId = idleTag.Id,
+                            StartTime = current.EndTime.Value,
+                            EndTime = next.StartTime,
+                            Date = today
+                        };
+                        _recordRepo.InsertRecord(idleRecord);
+                    }
+                }
+            }
+        }
+
+        // ========== STATS MODE ==========
+        private void StatsDay_Click(object sender, RoutedEventArgs e) { _statsMode = "day"; UpdateStatsButtons(); LoadStats(); }
+        private void StatsWeek_Click(object sender, RoutedEventArgs e) { _statsMode = "week"; UpdateStatsButtons(); LoadStats(); }
+        private void StatsMonth_Click(object sender, RoutedEventArgs e) { _statsMode = "month"; UpdateStatsButtons(); LoadStats(); }
+
+        private void UpdateStatsButtons()
+        {
+            StatsDayBtn.Style = (Style)FindResource(_statsMode == "day" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            StatsWeekBtn.Style = (Style)FindResource(_statsMode == "week" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            StatsMonthBtn.Style = (Style)FindResource(_statsMode == "month" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+        }
+
+        // ========== STATS ==========
+        private void LoadStats()
+        {
+            TodayStatsPanel.Children.Clear();
+            var now = DateTime.Now;
+            List<TimeRecord> records;
+
+            if (_statsMode == "day")
+            {
+                records = _recordRepo.GetRecordsByDate(now.ToString("yyyy-MM-dd"));
+            }
+            else if (_statsMode == "week")
+            {
+                var startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek);
+                records = _recordRepo.GetRecordsByDateRange(startOfWeek.ToString("yyyy-MM-dd"), now.ToString("yyyy-MM-dd"));
+            }
+            else
+            {
+                var startOfMonth = new DateTime(now.Year, now.Month, 1);
+                records = _recordRepo.GetRecordsByDateRange(startOfMonth.ToString("yyyy-MM-dd"), now.ToString("yyyy-MM-dd"));
+            }
 
             var tagTimes = new Dictionary<int, TimeSpan>();
             foreach (var r in records)
@@ -335,9 +415,10 @@ namespace ME.Views
             var totalTime = tagTimes.Values.Aggregate(TimeSpan.Zero, (a, b) => a + b);
             var totalText = new TextBlock
             {
-                Text = $"总计 {totalTime.Hours}h{totalTime.Minutes}m",
+                Text = $"总计 {FormatDuration(totalTime)}",
                 FontSize = 12,
-                Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush"),
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextBrush"),
                 Margin = new Thickness(0, 0, 12, 0)
             };
             TodayStatsPanel.Children.Add(totalText);
@@ -356,14 +437,23 @@ namespace ME.Views
                 };
                 var text = new TextBlock
                 {
-                    Text = $"{tag.Name} {kvp.Value.Hours}h{kvp.Value.Minutes}m",
+                    Text = $"{tag.Name} {FormatDuration(kvp.Value)}",
                     FontSize = 11,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                    Foreground = (Brush)FindResource("SecondaryTextBrush"),
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 TodayStatsPanel.Children.Add(dot);
                 TodayStatsPanel.Children.Add(text);
             }
+        }
+
+        private string FormatDuration(TimeSpan ts)
+        {
+            if (ts.TotalHours >= 1)
+                return $"{(int)ts.TotalHours}h{ts.Minutes}m";
+            if (ts.TotalMinutes >= 1)
+                return $"{(int)ts.TotalMinutes}m";
+            return $"{(int)ts.TotalSeconds}s";
         }
 
         // ========== GANTT CHART ==========
@@ -379,7 +469,7 @@ namespace ME.Views
                 {
                     Text = "暂无记录",
                     FontSize = 12,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush")
+                    Foreground = (Brush)FindResource("SecondaryTextBrush")
                 };
                 Canvas.SetLeft(noData, 10);
                 Canvas.SetTop(noData, 80);
@@ -402,8 +492,8 @@ namespace ME.Views
                 var line = new Line
                 {
                     X1 = x, Y1 = headerHeight, X2 = x, Y2 = canvasHeight,
-                    Stroke = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
-                    StrokeThickness = 0.3
+                    Stroke = (Brush)FindResource("BorderBrush"),
+                    StrokeThickness = 0.5
                 };
                 GanttCanvas.Children.Add(line);
 
@@ -411,7 +501,7 @@ namespace ME.Views
                 {
                     Text = $"{h:D2}:00",
                     FontSize = 9,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush")
+                    Foreground = (Brush)FindResource("SecondaryTextBrush")
                 };
                 Canvas.SetLeft(label, x - 15);
                 Canvas.SetTop(label, 0);
@@ -428,7 +518,7 @@ namespace ME.Views
                 {
                     Text = tag?.Name ?? "?",
                     FontSize = 9,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush")
+                    Foreground = (Brush)FindResource("TextBrush")
                 };
                 Canvas.SetLeft(tagLabel, 2);
                 Canvas.SetTop(tagLabel, y);
@@ -450,7 +540,8 @@ namespace ME.Views
                         Height = 16,
                         CornerRadius = new CornerRadius(3),
                         Background = brush,
-                        Opacity = record.EndTime.HasValue ? 0.8 : 1.0
+                        Opacity = record.EndTime.HasValue ? 0.8 : 1.0,
+                        ToolTip = $"{tag?.Name}: {record.StartTime:HH:mm} - {record.EndTime?.ToString("HH:mm") ?? "进行中"}"
                     };
                     Canvas.SetLeft(bar, x1);
                     Canvas.SetTop(bar, y + 2);
@@ -476,7 +567,7 @@ namespace ME.Views
                 {
                     Text = "暂无记录",
                     FontSize = 12,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                    Foreground = (Brush)FindResource("SecondaryTextBrush"),
                     Margin = new Thickness(4)
                 };
                 RecordsPanel.Children.Add(noRecords);
@@ -494,7 +585,7 @@ namespace ME.Views
                     CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(10, 8, 10, 8),
                     Margin = new Thickness(0, 0, 0, 6),
-                    Background = (Brush)FindResource("SystemControlBackgroundChromeMediumBrush"),
+                    Background = (Brush)FindResource("CardBrush"),
                     BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
                     BorderThickness = new Thickness(3, 0, 0, 0)
                 };
@@ -506,7 +597,7 @@ namespace ME.Views
                     Text = $"{tagName}  {record.StartTime:HH:mm} - {(record.EndTime?.ToString("HH:mm") ?? "进行中")}",
                     FontSize = 13,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush")
+                    Foreground = (Brush)FindResource("TextBrush")
                 };
                 panel.Children.Add(header);
 
@@ -515,9 +606,9 @@ namespace ME.Views
                     var dur = record.EndTime.Value - record.StartTime;
                     var durText = new TextBlock
                     {
-                        Text = $"时长: {dur.Hours}小时{dur.Minutes}分钟",
+                        Text = $"时长: {FormatDuration(dur)}",
                         FontSize = 11,
-                        Foreground = (Brush)FindResource("SystemControlForegroundBaseMediumBrush"),
+                        Foreground = (Brush)FindResource("SecondaryTextBrush"),
                         Margin = new Thickness(0, 2, 0, 0)
                     };
                     panel.Children.Add(durText);
@@ -555,7 +646,7 @@ namespace ME.Views
                     {
                         _recordRepo.DeleteRecord(record.Id);
                         LoadRecords();
-                        LoadTodayStats();
+                        LoadStats();
                         DrawGanttChart();
                     }
                 };
@@ -578,7 +669,7 @@ namespace ME.Views
                 record.TagId = dialog.ResultTagId;
                 _recordRepo.UpdateRecord(record);
                 LoadRecords();
-                LoadTodayStats();
+                LoadStats();
                 DrawGanttChart();
             }
         }
@@ -590,7 +681,7 @@ namespace ME.Views
             {
                 _recordRepo.ClearRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
                 LoadRecords();
-                LoadTodayStats();
+                LoadStats();
                 DrawGanttChart();
             }
         }
@@ -672,7 +763,7 @@ namespace ME.Views
 
                 if (isSelected)
                 {
-                    dayBtn.Background = (Brush)FindResource("SystemControlHighlightAccentBrush");
+                    dayBtn.Background = (Brush)FindResource("PrimaryBrush");
                     dayBtn.Foreground = Brushes.White;
                     dayBtn.FontWeight = FontWeights.Bold;
                     var template = new ControlTemplate(typeof(Button));
@@ -689,7 +780,7 @@ namespace ME.Views
                 else
                 {
                     dayBtn.Background = Brushes.Transparent;
-                    dayBtn.Foreground = (Brush)FindResource("SystemControlForegroundBaseHighBrush");
+                    dayBtn.Foreground = (Brush)FindResource("TextBrush");
                 }
 
                 dayBtn.Click += (s, ev) =>
@@ -722,7 +813,7 @@ namespace ME.Views
                     {
                         Width = 4, Height = 4,
                         CornerRadius = new CornerRadius(2),
-                        Background = (Brush)FindResource("SystemControlHighlightAccentBrush"),
+                        Background = (Brush)FindResource("PrimaryBrush"),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Top,
                         Margin = new Thickness(0, 2, 2, 0)
