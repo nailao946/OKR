@@ -43,6 +43,7 @@ namespace ME.Views
             BuildTagFilter();
             LoadData();
             LoadMiniStats();
+            LoadMiniTags();
 
             // Subscribe to timer updates for mini timer display
             SharedTimerService.TimerUpdated += OnMiniTimerUpdated;
@@ -63,7 +64,13 @@ namespace ME.Views
             {
                 MiniTimerText.Text = timeStr;
                 MiniRunningTag.Text = tagName;
-                try { MiniRunningDot.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tagColor)); } catch { }
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(tagColor);
+                    MiniRunningDot.Background = new SolidColorBrush(color);
+                    MiniTimerText.Foreground = new SolidColorBrush(color);
+                }
+                catch { }
             });
         }
 
@@ -77,9 +84,66 @@ namespace ME.Views
                     MiniTimerText.Text = "00:00:00";
                     MiniRunningTag.Text = "";
                     MiniRunningDot.Background = Brushes.Gray;
+                    MiniTimerText.Foreground = (SolidColorBrush)FindResource("TextBrush");
+                    MiniTimerToggleBtn.Content = "开始";
+                    MiniTimerToggleBtn.Style = (Style)FindResource("PrimaryButtonStyle");
                     LoadMiniStats();
                 }
+                else
+                {
+                    MiniTimerToggleBtn.Content = "停止";
+                    MiniTimerToggleBtn.Style = (Style)FindResource("DangerButtonStyle");
+                    if (MiniTagComboBox.Items.Count > 0)
+                    {
+                        foreach (var item in MiniTagComboBox.Items)
+                        {
+                            if (item is TimeTag tag && tag.Id == SharedTimerService.SelectedTagId)
+                            {
+                                MiniTagComboBox.SelectedItem = item;
+                                break;
+                            }
+                        }
+                    }
+                }
             });
+        }
+
+        private void LoadMiniTags()
+        {
+            var tagRepo = new ME.Data.TimeTagRepository();
+            var tags = tagRepo.GetAllTags();
+            MiniTagComboBox.ItemsSource = tags;
+            if (tags.Count > 0 && MiniTagComboBox.SelectedIndex < 0)
+                MiniTagComboBox.SelectedIndex = 0;
+
+            if (SharedTimerService.IsRunning)
+            {
+                MiniTimerToggleBtn.Content = "停止";
+                MiniTimerToggleBtn.Style = (Style)FindResource("DangerButtonStyle");
+                foreach (var item in tags)
+                {
+                    if (item.Id == SharedTimerService.SelectedTagId)
+                    {
+                        MiniTagComboBox.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void MiniTimerToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (SharedTimerService.IsRunning)
+            {
+                SharedTimerService.StopCurrent();
+            }
+            else
+            {
+                if (MiniTagComboBox.SelectedItem is TimeTag tag)
+                {
+                    SharedTimerService.StartWithTag(tag.Id);
+                }
+            }
         }
 
         private void LoadMiniStats()

@@ -62,12 +62,25 @@
                     </DockPanel>
                     <TextBlock x:Name="MiniTimerText" Text="00:00:00" FontSize="28" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
                         <Border x:Name="MiniRunningDot" Width="8" Height="8" CornerRadius="4"
                                 Background="Gray" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBlock x:Name="MiniRunningTag" Text="" FontSize="11"
                                    Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
                     </StackPanel>
+
+                    <!-- Quick Timer Controls -->
+                    <Border Background="{DynamicResource CardBrush}" CornerRadius="8" Padding="8,6" Margin="0,0,0,8">
+                        <DockPanel>
+                            <Button x:Name="MiniTimerToggleBtn" DockPanel.Dock="Right" Content="开始"
+                                    Click="MiniTimerToggle_Click" FontSize="11" Padding="12,4"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            <ComboBox x:Name="MiniTagComboBox" Style="{StaticResource MacComboBoxStyle}"
+                                      DisplayMemberPath="Name" SelectedValuePath="Id"
+                                      FontSize="11" Height="28" Margin="0,0,8,0"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
 
                     <!-- Today Stats -->
                     <TextBlock Text="今日统计" FontSize="12" FontWeight="SemiBold"

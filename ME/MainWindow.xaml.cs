@@ -234,8 +234,19 @@ namespace ME
             TitleText.Text = title;
         }
 
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            WindowBorder.BorderBrush = (SolidColorBrush)FindResource("BorderBrush");
+        }
+
+        private void Window_Deactivated(object sender, EventArgs e)
+        {
+            WindowBorder.BorderBrush = System.Windows.Media.Brushes.Transparent;
+        }
+
         protected override void OnClosed(EventArgs e)
         {
+            SharedTimerService.StopCurrent();
             _notifyIcon?.Dispose();
             base.OnClosed(e);
         }

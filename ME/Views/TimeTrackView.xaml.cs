@@ -33,6 +33,7 @@ namespace ME.Views
         private Border _highlightedRecordBorder = null;
         private ScrollViewer _detailRecordsScroll = null;
         private StackPanel _detailRecordsPanel = null;
+        private bool _sortAsc = false;
 
         public TimeTrackView()
         {
@@ -609,6 +610,10 @@ namespace ME.Views
         private void LoadRecords()
         {
             var records = _recordRepo.GetRecordsByDate(_selectedDate.ToString("yyyy-MM-dd"));
+            if (_sortAsc)
+                records = records.OrderBy(r => r.StartTime).ToList();
+            else
+                records = records.OrderByDescending(r => r.StartTime).ToList();
             RecordsPanel.Children.Clear();
 
             if (records.Count == 0)
@@ -733,6 +738,16 @@ namespace ME.Views
                 LoadStats();
                 DrawGanttChart();
             }
+        }
+
+        private void SortToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _sortAsc = !_sortAsc;
+            SortToggleBtn.Content = _sortAsc ? "↑正序" : "↓倒序";
+            SortToggleBtn.Style = _sortAsc
+                ? (Style)FindResource("PrimaryButtonStyle")
+                : (Style)FindResource("SecondaryButtonStyle");
+            LoadRecords();
         }
 
         private void ExportCsv_Click(object sender, RoutedEventArgs e)
@@ -972,7 +987,8 @@ namespace ME.Views
 
         private void DetailTitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left) GanttDetailPopup.IsOpen = false;
+            if (e.ChangedButton == MouseButton.Left && e.OriginalSource is System.Windows.Controls.Border)
+                GanttDetailPopup.IsOpen = false;
         }
 
         private void GanttBar_Click(object sender, MouseButtonEventArgs e)

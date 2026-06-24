@@ -9,6 +9,8 @@
         WindowStyle="None"
         Loaded="Window_Loaded"
         StateChanged="Window_StateChanged"
+        Activated="Window_Activated"
+        Deactivated="Window_Deactivated"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0" GlassFrameThickness="0"

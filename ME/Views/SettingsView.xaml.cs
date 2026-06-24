@@ -166,7 +166,7 @@ namespace ME.Views
         {
             var dialog = new Window
             {
-                Title = "自定义颜色",
+                Title = "",
                 Width = 320, Height = 400,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = Window.GetWindow(this),
@@ -174,6 +174,15 @@ namespace ME.Views
                 WindowStyle = WindowStyle.None,
                 AllowsTransparency = true,
                 Background = Brushes.Transparent,
+                ShowInTaskbar = false,
+                Topmost = true,
+            };
+            dialog.Loaded += (s, ev) =>
+            {
+                // Force remove any system chrome
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(dialog).Handle;
+                var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
+                NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style & ~NativeMethods.WS_SYSMENU);
             };
 
             var mainBorder = new Border
@@ -297,7 +306,8 @@ namespace ME.Views
             {
                 Text = selectedColor, FontSize = 13,
                 Style = (Style)FindResource("InputTextBoxStyle"),
-                Height = 36, Margin = new Thickness(0, 0, 0, 0)
+                Height = 36, Margin = new Thickness(0, 0, 0, 0),
+                VerticalContentAlignment = VerticalAlignment.Center
             };
             hexBox.TextChanged += (s, ev) =>
             {
@@ -340,7 +350,9 @@ namespace ME.Views
             mainGrid.Children.Add(btnPanel);
 
             mainBorder.Child = mainGrid;
-            dialog.Content = mainBorder;
+            var wrapper = new Grid();
+            wrapper.Children.Add(mainBorder);
+            dialog.Content = wrapper;
 
             if (dialog.ShowDialog() == true)
             {
@@ -621,5 +633,17 @@ namespace ME.Views
             public string Name { get; set; }
             public ColorBallDef(string c, string n) { Color = c; Name = n; }
         }
+    }
+
+    internal static class NativeMethods
+    {
+        public const int GWL_STYLE = -16;
+        public const int WS_SYSMENU = 0x00080000;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
     }
 }

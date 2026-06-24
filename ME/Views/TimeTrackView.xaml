@@ -65,8 +65,13 @@
                 <!-- Tags -->
                 <Border Style="{StaticResource CardStyle}" Padding="12,8" MaxHeight="90">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="标签 (点击开始/停止)" FontSize="11" FontWeight="SemiBold"
-                                   Margin="0,0,0,6" Foreground="{DynamicResource SecondaryTextBrush}" />
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <TextBlock Text="标签 (点击开始/停止)" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" />
+                            <Button Content="+标签" Click="AddTag_Click" Padding="8,2" FontSize="10"
+                                    HorizontalAlignment="Right"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </DockPanel>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <ItemsControl x:Name="TagItemsControl">
                                 <ItemsControl.ItemsPanel>
@@ -121,7 +126,7 @@
 
                 <!-- Gantt Detail Popup -->
                 <Popup x:Name="GanttDetailPopup" Placement="Center" PlacementTarget="{Binding ElementName=GanttChartBorder}"
-                       AllowsTransparency="True" StaysOpen="False" IsOpen="False">
+                       AllowsTransparency="True" StaysOpen="True" IsOpen="False">
                     <Border CornerRadius="14" Background="{DynamicResource BackgroundBrush}"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             MinWidth="320" MaxWidth="500" MaxHeight="500"
@@ -179,10 +184,8 @@
 
                 <!-- Bottom Buttons -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,8">
-                    <Button Content="＋标签" Click="AddTag_Click" Padding="10,5" FontSize="11"
-                            Style="{StaticResource SecondaryButtonStyle}" />
                     <Button Content="导出CSV" Click="ExportCsv_Click" Padding="10,5" FontSize="11"
-                            Margin="6,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
+                            Style="{StaticResource SecondaryButtonStyle}" />
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
@@ -238,9 +241,14 @@
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="时间记录" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextBrush}" />
-                        <Button x:Name="ClearRecordsBtn" Content="清空" Click="ClearRecords_Click"
-                                Padding="8,3" FontSize="11" HorizontalAlignment="Right"
-                                Style="{StaticResource SecondaryButtonStyle}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="SortToggleBtn" Content="↑正序" Click="SortToggle_Click"
+                                    Padding="8,3" FontSize="11"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button x:Name="ClearRecordsBtn" Content="清空" Click="ClearRecords_Click"
+                                    Padding="8,3" FontSize="11" Margin="4,0,0,0"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </StackPanel>
                     </DockPanel>
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="RecordsPanel" />

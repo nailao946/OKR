@@ -160,9 +160,16 @@ namespace ME.Views
             ResetForm();
         }
 
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+            Close();
+        }
+
         private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left) DragMove();
+            if (e.ChangedButton == MouseButton.Left && e.OriginalSource is System.Windows.Controls.Border)
+                DragMove();
         }
 
         private void ResetForm()
