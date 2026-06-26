@@ -204,6 +204,15 @@ namespace ME.Views
             SoundToggle.IsChecked = SoundService.IsEnabled();
             FocusSoundToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.FocusSoundEnabled, "True") == "True";
             LastBackupText.Text = _settingsRepo.GetValue(SettingsKeys.LastBackupDate, "");
+
+            // Floating window
+            FloatingWindowToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.FloatingWindowEnabled, "False") == "True";
+            var sizeStr = _settingsRepo.GetValue("FloatingWindowSize", "120");
+            if (double.TryParse(sizeStr, out var size))
+            {
+                FloatingSizeSlider.Value = size;
+                FloatingSizeText.Text = ((int)size).ToString();
+            }
         }
 
         private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
@@ -254,6 +263,34 @@ namespace ME.Views
         {
             var isEnabled = TrayBalloonToggle.IsChecked == true;
             _settingsRepo.SetValue(SettingsKeys.TrayBalloonEnabled, isEnabled.ToString());
+        }
+
+        private void FloatingWindow_Changed(object sender, RoutedEventArgs e)
+        {
+            var isEnabled = FloatingWindowToggle.IsChecked == true;
+            _settingsRepo.SetValue(SettingsKeys.FloatingWindowEnabled, isEnabled.ToString());
+            var mainWindow = Window.GetWindow(this) as MainWindow;
+            if (mainWindow != null)
+            {
+                if (isEnabled)
+                    mainWindow.ShowFloatingWindow();
+                else
+                    mainWindow.HideFloatingWindow();
+            }
+        }
+
+        private void FloatingSize_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (FloatingSizeText != null)
+            {
+                var size = (int)e.NewValue;
+                FloatingSizeText.Text = size.ToString();
+                _settingsRepo.SetValue("FloatingWindowSize", size.ToString());
+
+                // Apply to floating window if open
+                var mainWindow = Window.GetWindow(this) as MainWindow;
+                // Floating window auto-sizes based on content, no forced resize needed
+            }
         }
 
         private void SoundToggle_Changed(object sender, RoutedEventArgs e)

@@ -1,0 +1,46 @@
+<Window x:Class="ME.Views.FloatingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="悬浮计时"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeToContent="WidthAndHeight"
+        MinWidth="100" MinHeight="36"
+        MaxWidth="300" MaxHeight="80"
+        Left="100" Top="100"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseRightButtonDown="Window_MouseRightButtonDown">
+    <Border x:Name="MainBorder" CornerRadius="10" Padding="8,6"
+            Background="{DynamicResource CardBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="2" />
+        </Border.Effect>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Tag color dot -->
+            <Border x:Name="TagDot" Width="10" Height="10" CornerRadius="5"
+                    Background="#808080" VerticalAlignment="Center" Margin="0,0,6,0" />
+
+            <!-- Timer + tag name -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="TimerText" Text="00:00:00"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextBrush}" />
+                <TextBlock x:Name="TagNameText" Text="未计时"
+                           FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                           Margin="0,-2,0,0" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -19,6 +19,7 @@ namespace ME.Models
         public const string WindowBorderColor = "WindowBorderColor";
         public const string TraySoundEnabled = "TraySoundEnabled";
         public const string TrayBalloonEnabled = "TrayBalloonEnabled";
+        public const string FloatingWindowEnabled = "FloatingWindowEnabled";
     }
 
     public enum AppTheme

@@ -1061,7 +1061,8 @@ namespace ME.Views
             totalsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             totalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            AddTotalCell(totalsGrid, 0, 0, "今日", FormatDuration(tagTimeDay));
+            var dayLabel = _selectedDate.Date == DateTime.Today ? "今日" : _selectedDate.ToString("M/d");
+            AddTotalCell(totalsGrid, 0, 0, dayLabel, FormatDuration(tagTimeDay));
             AddTotalCell(totalsGrid, 0, 1, "本周", FormatDuration(tagTimeWeek));
             AddTotalCell(totalsGrid, 0, 2, "本月", FormatDuration(tagTimeMonth));
             AddTotalCell(totalsGrid, 0, 3, "本年", FormatDuration(tagTimeYear));
@@ -1133,11 +1134,11 @@ namespace ME.Views
             switch (_detailFilter)
             {
                 case "week":
-                    startDate = DateTime.Now.Date.AddDays(-7);
+                    startDate = _selectedDate.Date.AddDays(-7);
                     periodLabel = "近一周";
                     break;
                 case "month":
-                    startDate = DateTime.Now.Date.AddDays(-30);
+                    startDate = _selectedDate.Date.AddDays(-30);
                     periodLabel = "近一月";
                     break;
                 case "all":
@@ -1145,8 +1146,8 @@ namespace ME.Views
                     periodLabel = "全部";
                     break;
                 default:
-                    startDate = DateTime.Now.Date;
-                    periodLabel = "今日";
+                    startDate = _selectedDate.Date;
+                    periodLabel = _selectedDate.Date == DateTime.Today ? "今日" : _selectedDate.ToString("M月d日");
                     break;
             }
 
@@ -1160,7 +1161,7 @@ namespace ME.Views
             }
             else
             {
-                records = _recordRepo.GetRecordsByDateRange(startDate.ToString("yyyy-MM-dd"), DateTime.Now.ToString("yyyy-MM-dd"))
+                records = _recordRepo.GetRecordsByDateRange(startDate.ToString("yyyy-MM-dd"), _selectedDate.Date.ToString("yyyy-MM-dd"))
                     .Where(r => r.TagId == _detailTagId)
                     .OrderByDescending(r => r.StartTime)
                     .ToList();
@@ -1247,8 +1248,9 @@ namespace ME.Views
 
         private TimeSpan GetTagTotalTime(int tagId, int days)
         {
-            var start = DateTime.Now.Date.AddDays(days);
-            var records = _recordRepo.GetRecordsByDateRange(start.ToString("yyyy-MM-dd"), DateTime.Now.ToString("yyyy-MM-dd"));
+            var start = _selectedDate.Date.AddDays(days);
+            var end = _selectedDate.Date;
+            var records = _recordRepo.GetRecordsByDateRange(start.ToString("yyyy-MM-dd"), end.ToString("yyyy-MM-dd"));
             TimeSpan total = TimeSpan.Zero;
             foreach (var r in records.Where(r => r.TagId == tagId))
                 total += (r.EndTime ?? DateTime.Now) - r.StartTime;

@@ -29,6 +29,8 @@ namespace ME
         private UserControl _currentView;
         private Forms.NotifyIcon _notifyIcon;
         private bool _isDarkTheme;
+        private FloatingWindow _floatingWindow;
+        private Forms.ToolStripMenuItem _floatingMenuItem;
 
         public MainWindow()
         {
@@ -40,6 +42,7 @@ namespace ME
             UpdateThemeButton();
             SetupTrayIcon();
             ApplyWindowBorderColor();
+            InitFloatingWindow();
 
             ThemeService.ThemeChanged += (theme) =>
             {
@@ -185,8 +188,14 @@ namespace ME
                 showItem.Click += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
                 menu.Items.Add(showItem);
 
+                _floatingMenuItem = new Forms.ToolStripMenuItem("显示悬浮窗");
+                _floatingMenuItem.Click += (s, ev) => ToggleFloatingWindow();
+                menu.Items.Add(_floatingMenuItem);
+
+                menu.Items.Add(new Forms.ToolStripSeparator());
+
                 var exitItem = new Forms.ToolStripMenuItem("退出");
-                exitItem.Click += (s, ev) => { _notifyIcon.Visible = false; Application.Current.Shutdown(); };
+                exitItem.Click += (s, ev) => { _notifyIcon.Visible = false; CloseFloatingWindowPermanent(); Application.Current.Shutdown(); };
                 menu.Items.Add(exitItem);
 
                 _notifyIcon.ContextMenuStrip = menu;
@@ -205,6 +214,57 @@ namespace ME
         {
             if (_notifyIcon != null)
                 _notifyIcon.Visible = visible;
+        }
+
+        // ========== FLOATING WINDOW ==========
+        private void InitFloatingWindow()
+        {
+            var settingsRepo = new SettingsRepository();
+            var enabled = settingsRepo.GetValue(SettingsKeys.FloatingWindowEnabled, "False");
+            if (enabled == "True")
+            {
+                ShowFloatingWindow();
+            }
+        }
+
+        public void ShowFloatingWindow()
+        {
+            if (_floatingWindow == null)
+            {
+                _floatingWindow = new FloatingWindow();
+                _floatingWindow.Closed += (s, ev) => _floatingWindow = null;
+            }
+            _floatingWindow.Show();
+            if (_floatingMenuItem != null)
+                _floatingMenuItem.Text = "隐藏悬浮窗";
+        }
+
+        public void HideFloatingWindow()
+        {
+            _floatingWindow?.Hide();
+            if (_floatingMenuItem != null)
+                _floatingMenuItem.Text = "显示悬浮窗";
+        }
+
+        public void ToggleFloatingWindow()
+        {
+            if (_floatingWindow != null && _floatingWindow.IsVisible)
+            {
+                HideFloatingWindow();
+            }
+            else
+            {
+                ShowFloatingWindow();
+            }
+        }
+
+        private void CloseFloatingWindowPermanent()
+        {
+            if (_floatingWindow != null)
+            {
+                _floatingWindow.ClosePermanent();
+                _floatingWindow = null;
+            }
         }
 
         // ========== NAVIGATION ==========
@@ -264,6 +324,7 @@ namespace ME
         protected override void OnClosed(EventArgs e)
         {
             SharedTimerService.StopCurrent();
+            CloseFloatingWindowPermanent();
             _notifyIcon?.Dispose();
             base.OnClosed(e);
         }
