@@ -21,7 +21,7 @@
             Background="{DynamicResource CardBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="12" Opacity="0.3" ShadowDepth="3" />
+            <DropShadowEffect BlurRadius="8" Opacity="0.15" ShadowDepth="2" />
         </Border.Effect>
 
         <Grid>
@@ -120,9 +120,7 @@
                     <!-- Tag chips row -->
                     <Border Grid.Row="3" Padding="12,8"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                            <StackPanel x:Name="TagChipsPanel" Orientation="Horizontal" />
-                        </ScrollViewer>
+                        <WrapPanel x:Name="TagChipsPanel" />
                     </Border>
                 </Grid>
             </Border>
