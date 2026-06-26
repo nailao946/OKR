@@ -24,7 +24,12 @@
             <DropShadowEffect BlurRadius="8" Opacity="0.15" ShadowDepth="2" />
         </Border.Effect>
 
-        <Grid>
+        <Grid x:Name="ContentRoot">
+            <Grid.RenderTransform>
+                <ScaleTransform x:Name="ContentScale" ScaleX="1" ScaleY="1"
+                                CenterX="0" CenterY="0" />
+            </Grid.RenderTransform>
+
             <!-- ═══ COLLAPSED PILL ═══ -->
             <Border x:Name="CollapsedPanel" Background="Transparent"
                     Padding="14,8" Cursor="Hand"

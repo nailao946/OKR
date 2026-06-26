@@ -104,13 +104,50 @@ namespace ME.Views
             ExpandedPanel.Visibility = Visibility.Visible;
             LoadTaskList();
             StartDotPulse();
+
+            // Animate window size + content scale
+            SizeToContent = SizeToContent.Manual;
+            Width = 280;
+            Height = 420;
+
+            ContentScale.ScaleX = 0.3;
+            ContentScale.ScaleY = 0.3;
+            var scaleAnim = new DoubleAnimation(0.3, 1, TimeSpan.FromSeconds(0.25))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.2));
+            ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
         }
 
         private void Collapse()
         {
-            _isExpanded = false;
-            ExpandedPanel.Visibility = Visibility.Collapsed;
-            CollapsedPanel.Visibility = Visibility.Visible;
+            // Animate content scale out, then swap panels
+            var scaleAnim = new DoubleAnimation(1, 0.3, TimeSpan.FromSeconds(0.2))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            var opacityAnim = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.15));
+
+            scaleAnim.Completed += (s, e) =>
+            {
+                _isExpanded = false;
+                ExpandedPanel.Visibility = Visibility.Collapsed;
+                CollapsedPanel.Visibility = Visibility.Visible;
+
+                // Reset and snap window to pill size
+                ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                ContentScale.ScaleX = 1;
+                ContentScale.ScaleY = 1;
+                SizeToContent = SizeToContent.WidthAndHeight;
+                Width = double.NaN;
+                Height = double.NaN;
+            };
+
+            ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
         }
 
         // ─── Pill click → expand ───────────────────────────────────────
@@ -213,19 +250,55 @@ namespace ME.Views
             try { textBrush = (Brush)FindResource("TextBrush"); }
             catch { textBrush = Brushes.White; }
 
-            // Stop current
+            // ── 计时器 submenu ──
+            var timerMenu = new MenuItem { Header = "计时器", Foreground = textBrush };
+            var tags = _tagRepo.GetAllTags();
+            var runningTagId = SharedTimerService.IsRunning ? SharedTimerService.SelectedTagId : -1;
+
+            // Stop current (inside submenu)
             if (SharedTimerService.IsRunning)
             {
-                var currentTag = _tagRepo.GetTagById(SharedTimerService.SelectedTagId);
+                var currentTag = _tagRepo.GetTagById(runningTagId);
                 var stopItem = new MenuItem
                 {
                     Header = $"■ 停止 [{currentTag?.Name ?? "未知"}]",
                     Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF3B30"))
                 };
                 stopItem.Click += (s, ev) => SharedTimerService.StopCurrent();
-                menu.Items.Add(stopItem);
-                menu.Items.Add(new Separator());
+                timerMenu.Items.Add(stopItem);
+                timerMenu.Items.Add(new Separator());
             }
+
+            foreach (var tag in tags)
+            {
+                Color tagColor;
+                try { tagColor = (Color)ColorConverter.ConvertFromString(tag.Color); }
+                catch { tagColor = Color.FromRgb(128, 128, 128); }
+
+                var isRunning = SharedTimerService.IsRunning && runningTagId == tag.Id;
+                var item = new MenuItem
+                {
+                    Header = (isRunning ? "● " : "") + tag.Name,
+                    Foreground = textBrush,
+                    Icon = new Border
+                    {
+                        Width = 10, Height = 10, CornerRadius = new CornerRadius(5),
+                        Background = new SolidColorBrush(tagColor),
+                        Margin = new Thickness(0, 0, 6, 0)
+                    }
+                };
+                var capturedTagId = tag.Id;
+                item.Click += (s, ev) =>
+                {
+                    if (SharedTimerService.IsRunning && SharedTimerService.SelectedTagId == capturedTagId)
+                        SharedTimerService.StopCurrent();
+                    else
+                        SharedTimerService.StartWithTag(capturedTagId);
+                };
+                timerMenu.Items.Add(item);
+            }
+
+            menu.Items.Add(timerMenu);
 
             // Show main window
             var showItem = new MenuItem { Header = "显示主窗口", Foreground = textBrush };
