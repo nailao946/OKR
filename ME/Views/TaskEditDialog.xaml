@@ -6,7 +6,8 @@
         Background="Transparent"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" ShowInTaskbar="False"
-        Title="添加任务" Height="620" Width="460"
+        Title="添加任务" Width="460" MaxHeight="680"
+        SizeToContent="Height"
         FocusManager.IsFocusScope="True">
     <Border CornerRadius="14" Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -35,7 +36,8 @@
             </Border>
 
             <!-- Content -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,12,20,0">
+            <ScrollViewer x:Name="ContentScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,12,20,0"
+                          MaxHeight="580">
                 <StackPanel>
                     <!-- Task Name -->
                     <TextBlock Text="任务名称" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
@@ -214,6 +216,10 @@
                             </ComboBox>
                             <TextBlock Text="单位 (如: 页/公里/元)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
                             <TextBox x:Name="QuantUnitBox" Style="{DynamicResource InputTextBoxStyle}"
+                                     Width="180" HorizontalAlignment="Left" Height="36" FontSize="13"
+                                     VerticalContentAlignment="Center" />
+                            <TextBlock Text="每日目标 (达到此值算当日完成)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,10,0,6" />
+                            <TextBox x:Name="QuantDailyMinBox" Style="{DynamicResource InputTextBoxStyle}"
                                      Width="180" HorizontalAlignment="Left" Height="36" FontSize="13"
                                      VerticalContentAlignment="Center" />
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0" x:Name="CountTowardsParentPanel" Visibility="Collapsed">

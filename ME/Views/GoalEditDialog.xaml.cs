@@ -70,8 +70,18 @@ namespace ME.Views
         {
             if (QuantitativePanel != null)
             {
-                QuantitativePanel.Visibility = UseQuantitativeCheck.IsChecked == true
-                    ? Visibility.Visible : Visibility.Collapsed;
+                var isQuant = UseQuantitativeCheck.IsChecked == true;
+                QuantitativePanel.Visibility = isQuant ? Visibility.Visible : Visibility.Collapsed;
+                if (isQuant)
+                {
+                    ContentScroller.MaxHeight = 600;
+                    SizeToContent = SizeToContent.Height;
+                }
+                else
+                {
+                    ContentScroller.MaxHeight = 400;
+                    SizeToContent = SizeToContent.Height;
+                }
             }
         }
 

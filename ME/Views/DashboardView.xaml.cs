@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ME.Core;
 using ME.Data;
 using ME.Models;
@@ -202,6 +203,45 @@ namespace ME.Views
 
             if (taskDisplayList.Count > 0 && TaskListBox.SelectedIndex < 0)
                 TaskListBox.SelectedIndex = 0;
+
+            // Animate progress bars after layout
+            Dispatcher.BeginInvoke(new Action(() => AnimateProgressBars()), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void AnimateProgressBars()
+        {
+            int idx = 0;
+            foreach (var item in TaskListBox.Items)
+            {
+                var container = TaskListBox.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
+                if (container == null) continue;
+                var pb = FindChild<ProgressBar>(container);
+                if (pb != null)
+                {
+                    var target = pb.Value;
+                    pb.Value = 0;
+                    var delayMs = idx * 60;
+                    var anim = new DoubleAnimation(0, target, TimeSpan.FromMilliseconds(500))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                        BeginTime = TimeSpan.FromMilliseconds(delayMs)
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
+                }
+                idx++;
+            }
+        }
+
+        private static T FindChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T found) return found;
+                var result = FindChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private string GetTypeText(TaskItem task)

@@ -64,20 +64,20 @@
                     </DockPanel>
 
                     <!-- Timer with ring -->
-                    <Grid HorizontalAlignment="Center" Width="120" Height="120" Margin="0,0,0,8">
-                        <Ellipse Width="100" Height="100" Stroke="{DynamicResource BackgroundBrush}" StrokeThickness="6" />
-                        <Ellipse x:Name="MiniTimerRing" Width="100" Height="100" Stroke="{DynamicResource PrimaryBrush}"
-                                 StrokeThickness="6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                    <Grid HorizontalAlignment="Center" Width="150" Height="150" Margin="0,0,0,8">
+                        <Ellipse Width="120" Height="120" Stroke="{DynamicResource BackgroundBrush}" StrokeThickness="7" />
+                        <Ellipse x:Name="MiniTimerRing" Width="120" Height="120" Stroke="{DynamicResource PrimaryBrush}"
+                                 StrokeThickness="7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                  RenderTransformOrigin="0.5,0.5" Opacity="0.3">
                             <Ellipse.StrokeDashArray>
-                                <DoubleCollection>94.25 94.25</DoubleCollection>
+                                <DoubleCollection>113.1 113.1</DoubleCollection>
                             </Ellipse.StrokeDashArray>
                             <Ellipse.RenderTransform>
                                 <RotateTransform Angle="-90" />
                             </Ellipse.RenderTransform>
                         </Ellipse>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock x:Name="MiniTimerText" Text="00:00:00" FontSize="22" FontWeight="Bold"
+                            <TextBlock x:Name="MiniTimerText" Text="00:00:00" FontSize="26" FontWeight="Bold"
                                        Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
                                 <Border x:Name="MiniRunningDot" Width="6" Height="6" CornerRadius="3"

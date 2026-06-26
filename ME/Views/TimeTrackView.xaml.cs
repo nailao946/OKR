@@ -238,6 +238,7 @@ namespace ME.Views
 
             var panel = new WrapPanel();
 
+            int idx = 0;
             foreach (var tag in _allTags)
             {
                 bool isSelected = tag.Id == _selectedTagId && SharedTimerService.IsRunning;
@@ -253,7 +254,8 @@ namespace ME.Views
                         ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color))
                         : (Brush)FindResource("CardBrush"),
                     BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(tag.Color)),
-                    BorderThickness = new Thickness(isSelected ? 0 : 1.5)
+                    BorderThickness = new Thickness(isSelected ? 0 : 1.5),
+                    Opacity = 0
                 };
 
                 var text = new TextBlock
@@ -269,6 +271,24 @@ namespace ME.Views
                 border.MouseLeftButtonDown += TagItem_Click;
                 border.MouseRightButtonDown += TagItem_RightClick;
                 panel.Children.Add(border);
+
+                // Staggered entrance animation
+                var delayMs = idx * 50;
+                var translateAnim = new DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(300))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                    BeginTime = TimeSpan.FromMilliseconds(delayMs)
+                };
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                    BeginTime = TimeSpan.FromMilliseconds(delayMs)
+                };
+                var translate = new TranslateTransform(0, 8);
+                border.RenderTransform = translate;
+                translate.BeginAnimation(TranslateTransform.YProperty, translateAnim);
+                border.BeginAnimation(Border.OpacityProperty, fadeAnim);
+                idx++;
             }
 
             TagItemsControl.Items.Clear();

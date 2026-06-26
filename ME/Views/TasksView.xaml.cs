@@ -95,7 +95,7 @@ namespace ME.Views
                     MiniTimerToggleBtn.Style = (Style)FindResource("PrimaryButtonStyle");
                     MiniTimerStatus.Text = "";
                     MiniTimerRing.Opacity = 0.3;
-                    MiniTimerRing.StrokeDashOffset = 94.25;
+                    MiniTimerRing.StrokeDashOffset = 113.1;
                     LoadMiniStats();
                     LoadMiniTaskSummary();
                 }
@@ -220,7 +220,7 @@ namespace ME.Views
             if (parts.Length == 3 && int.TryParse(parts[2], out int sec))
             {
                 var progress = sec / 60.0;
-                var offset = 94.25 * (1 - progress);
+                var offset = 113.1 * (1 - progress);
                 MiniTimerRing.StrokeDashOffset = offset;
             }
         }

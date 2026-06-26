@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using ME.Data;
 using ME.Models;
@@ -121,7 +122,10 @@ namespace ME.Views
             var grid = new Grid
             {
                 Width = size,
-                Height = size
+                Height = size,
+                Opacity = 0,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = new ScaleTransform(0.7, 0.7)
             };
 
             // Background circle (gray)
@@ -142,6 +146,27 @@ namespace ME.Views
                 var path = CreateArcPath(angle, color, size);
                 grid.Children.Add(path);
             }
+
+            // Entrance animation
+            var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(400))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var scaleAnimX = new DoubleAnimation(0.7, 1, TimeSpan.FromMilliseconds(400))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var scaleAnimY = new DoubleAnimation(0.7, 1, TimeSpan.FromMilliseconds(400))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            grid.Loaded += (s, e) =>
+            {
+                grid.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var st = grid.RenderTransform as ScaleTransform;
+                st?.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimX);
+                st?.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimY);
+            };
 
             return grid;
         }

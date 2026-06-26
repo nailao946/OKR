@@ -162,6 +162,7 @@ namespace ME.Views
                     QuantStartBox.Text = (existingTask.QuantitativeStart ?? 0).ToString();
                     QuantTargetBox.Text = (existingTask.QuantitativeTarget ?? 0).ToString();
                     QuantUnitBox.Text = existingTask.QuantitativeUnit ?? "";
+                    QuantDailyMinBox.Text = (existingTask.QuantitativeDailyMin ?? 0).ToString();
                     QuantModeCombo.SelectedIndex = existingTask.QuantitativeMode == QuantitativeMode.Accumulate ? 0 : 1;
                 }
 
@@ -215,8 +216,19 @@ namespace ME.Views
         {
             if (QuantitativePanel != null)
             {
-                QuantitativePanel.Visibility = UseQuantitativeCheck.IsChecked == true
-                    ? Visibility.Visible : Visibility.Collapsed;
+                var isQuant = UseQuantitativeCheck.IsChecked == true;
+                QuantitativePanel.Visibility = isQuant ? Visibility.Visible : Visibility.Collapsed;
+                // Resize dialog: compact when not quantitative, taller when it is
+                if (isQuant)
+                {
+                    ContentScroller.MaxHeight = 580;
+                    SizeToContent = SizeToContent.Height;
+                }
+                else
+                {
+                    ContentScroller.MaxHeight = 380;
+                    SizeToContent = SizeToContent.Height;
+                }
             }
         }
 
@@ -324,6 +336,10 @@ namespace ME.Views
                 if (double.TryParse(QuantTargetBox.Text, out double target))
                     ResultTask.QuantitativeTarget = target;
                 ResultTask.QuantitativeUnit = QuantUnitBox.Text.Trim();
+                if (double.TryParse(QuantDailyMinBox.Text, out double dailyMin) && dailyMin > 0)
+                    ResultTask.QuantitativeDailyMin = dailyMin;
+                else
+                    ResultTask.QuantitativeDailyMin = null;
             }
 
             // CountTowardsParent for subtasks

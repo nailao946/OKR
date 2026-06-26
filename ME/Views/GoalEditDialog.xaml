@@ -6,7 +6,8 @@
         Background="Transparent"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" ShowInTaskbar="False"
-        Title="添加目标" Height="700" Width="480"
+        Title="添加目标" Width="480" MaxHeight="700"
+        SizeToContent="Height"
         FocusManager.IsFocusScope="True">
     <Border CornerRadius="14" Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -35,7 +36,8 @@
             </Border>
 
             <!-- Content -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,12,20,0">
+            <ScrollViewer x:Name="ContentScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,12,20,0"
+                          MaxHeight="600">
                 <StackPanel>
                     <!-- Goal Name -->
                     <TextBlock Text="目标名称" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
