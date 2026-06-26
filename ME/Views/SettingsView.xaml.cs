@@ -289,7 +289,10 @@ namespace ME.Views
 
                 // Apply to floating window if open
                 var mainWindow = Window.GetWindow(this) as MainWindow;
-                // Floating window auto-sizes based on content, no forced resize needed
+                if (mainWindow != null)
+                {
+                    mainWindow.SetFloatingWindowSize(size);
+                }
             }
         }
 
@@ -343,7 +346,7 @@ namespace ME.Views
                         foreach (var file in Directory.GetFiles(dataDir, "*.json"))
                         {
                             var json = File.ReadAllText(file);
-                            var doc = JsonDocument.Parse(json);
+                            using var doc = JsonDocument.Parse(json);
                             var key = Path.GetFileNameWithoutExtension(file);
                             merged[key] = doc.RootElement;
                         }
@@ -352,12 +355,12 @@ namespace ME.Views
                     File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(merged, options));
                     _settingsRepo.SetValue(SettingsKeys.LastBackupDate, $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                     LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                    MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -393,7 +396,7 @@ namespace ME.Views
                         if (File.Exists(path))
                         {
                             var json = File.ReadAllText(path);
-                            var doc = JsonDocument.Parse(json);
+                            using var doc = JsonDocument.Parse(json);
                             var key = Path.GetFileNameWithoutExtension(file);
                             merged[key] = doc.RootElement;
                         }
@@ -402,12 +405,12 @@ namespace ME.Views
                     File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(merged, options));
                     _settingsRepo.SetValue(SettingsKeys.LastBackupDate, $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                     LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                    MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    System.Windows.MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -422,7 +425,7 @@ namespace ME.Views
                 if (dlg.ShowDialog() == true)
                 {
                     var json = File.ReadAllText(dlg.FileName);
-                    var doc = JsonDocument.Parse(json);
+                    using var doc = JsonDocument.Parse(json);
                     var dataDir = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ME", "JsonData");

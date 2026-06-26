@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using ME.Data;
@@ -70,8 +69,13 @@ namespace ME.Views
         public void ClosePermanent()
         {
             _isClosingFromCode = true;
-            SavePosition();
             Close();
+        }
+
+        public void SetSize(double width)
+        {
+            MaxWidth = width + 100;
+            Width = width + 100;
         }
 
         private void SavePosition()

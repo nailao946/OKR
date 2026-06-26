@@ -21,14 +21,14 @@ namespace ME.Services
         public static bool IsEnabled()
         {
             var repo = new SettingsRepository();
-            var setting = repo.GetValue(Models.SettingsKeys.SoundEnabled, "true");
-            return setting == "true";
+            var setting = repo.GetValue(Models.SettingsKeys.SoundEnabled, "True");
+            return setting == "True";
         }
 
         public static void SetEnabled(bool enabled)
         {
             var repo = new SettingsRepository();
-            repo.SetValue(Models.SettingsKeys.SoundEnabled, enabled ? "true" : "false");
+            repo.SetValue(Models.SettingsKeys.SoundEnabled, enabled ? "True" : "False");
         }
 
         public static void PlayCompletionSound()
