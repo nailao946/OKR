@@ -145,6 +145,12 @@ namespace ME.Views
         private void ShowContextMenu()
         {
             var menu = new System.Windows.Controls.ContextMenu();
+            try
+            {
+                menu.Background = (Brush)FindResource("CardBrush");
+                menu.BorderBrush = (Brush)FindResource("BorderBrush");
+            }
+            catch { }
 
             // Current running tag (stop option)
             if (SharedTimerService.IsRunning)
@@ -162,13 +168,18 @@ namespace ME.Views
 
             // All tags
             var tags = _tagRepo.GetAllTags();
+            Brush textBrush;
+            try { textBrush = (Brush)FindResource("TextBrush"); }
+            catch { textBrush = Brushes.White; }
+
             foreach (var tag in tags)
             {
                 var isRunning = SharedTimerService.IsRunning && SharedTimerService.SelectedTagId == tag.Id;
                 var item = new System.Windows.Controls.MenuItem
                 {
                     Header = (isRunning ? "● " : "○ ") + tag.Name,
-                    IsEnabled = !isRunning
+                    IsEnabled = !isRunning,
+                    Foreground = textBrush
                 };
                 var tagId = tag.Id;
                 item.Click += (s, ev) => SharedTimerService.StartWithTag(tagId);
@@ -178,7 +189,7 @@ namespace ME.Views
             menu.Items.Add(new System.Windows.Controls.Separator());
 
             // Show main window
-            var showMainItem = new System.Windows.Controls.MenuItem { Header = "显示主窗口" };
+            var showMainItem = new System.Windows.Controls.MenuItem { Header = "显示主窗口", Foreground = textBrush };
             showMainItem.Click += (s, ev) =>
             {
                 var mainWindow = System.Windows.Application.Current.MainWindow;
@@ -192,7 +203,7 @@ namespace ME.Views
             menu.Items.Add(showMainItem);
 
             // Close floating window
-            var hideItem = new System.Windows.Controls.MenuItem { Header = "隐藏悬浮窗" };
+            var hideItem = new System.Windows.Controls.MenuItem { Header = "隐藏悬浮窗", Foreground = textBrush };
             hideItem.Click += (s, ev) => Hide();
             menu.Items.Add(hideItem);
 
