@@ -58,6 +58,8 @@ namespace ME.Services
                         dict["AccentPink"] = ColorFromString("#FF375F");
                         dict["AccentGray"] = ColorFromString("#8E8E93");
                         dict["AccentYellow"] = ColorFromString("#FFD60A");
+                        dict["AccentPurple"] = ColorFromString("#BF5AF2");
+                        dict["AccentTeal"] = ColorFromString("#64D2FF");
 
                         dict["GoalRedBrush"] = new SolidColorBrush(ColorFromString("#FF453A"));
                         dict["GoalGreenBrush"] = new SolidColorBrush(ColorFromString("#30D158"));
@@ -72,6 +74,8 @@ namespace ME.Services
                         dict["AccentPinkBrush"] = new SolidColorBrush(ColorFromString("#FF375F"));
                         dict["AccentGrayBrush"] = new SolidColorBrush(ColorFromString("#636366"));
                         dict["AccentYellowBrush"] = new SolidColorBrush(ColorFromString("#FFD60A"));
+                        dict["AccentPurpleBrush"] = new SolidColorBrush(ColorFromString("#BF5AF2"));
+                        dict["AccentTealBrush"] = new SolidColorBrush(ColorFromString("#64D2FF"));
                     }
                     else
                     {
@@ -102,6 +106,8 @@ namespace ME.Services
                         dict["AccentPink"] = ColorFromString("#FF2D55");
                         dict["AccentGray"] = ColorFromString("#8E8E93");
                         dict["AccentYellow"] = ColorFromString("#FFCC00");
+                        dict["AccentPurple"] = ColorFromString("#AF52DE");
+                        dict["AccentTeal"] = ColorFromString("#5AC8FA");
 
                         dict["GoalRedBrush"] = new SolidColorBrush(ColorFromString("#FF3B30"));
                         dict["GoalGreenBrush"] = new SolidColorBrush(ColorFromString("#34C759"));
@@ -116,6 +122,8 @@ namespace ME.Services
                         dict["AccentPinkBrush"] = new SolidColorBrush(ColorFromString("#FF2D55"));
                         dict["AccentGrayBrush"] = new SolidColorBrush(ColorFromString("#8E8E93"));
                         dict["AccentYellowBrush"] = new SolidColorBrush(ColorFromString("#FFCC00"));
+                        dict["AccentPurpleBrush"] = new SolidColorBrush(ColorFromString("#AF52DE"));
+                        dict["AccentTealBrush"] = new SolidColorBrush(ColorFromString("#5AC8FA"));
                     }
                     break;
                 }

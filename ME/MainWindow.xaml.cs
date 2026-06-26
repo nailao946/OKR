@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ME.Data;
 using ME.Models;
 using ME.Services;
@@ -304,9 +305,26 @@ namespace ME
             }
 
             if (_currentView != null && _currentView != view)
-                _currentView.Visibility = Visibility.Collapsed;
+            {
+                var oldView = _currentView;
+                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.12));
+                fadeOut.Completed += (s, e) =>
+                {
+                    oldView.Visibility = Visibility.Collapsed;
+                    oldView.Opacity = 1;
+                    oldView.BeginAnimation(UIElement.OpacityProperty, null);
+                };
+                oldView.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            }
 
             view.Visibility = Visibility.Visible;
+            view.Opacity = 0;
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.18))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            view.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+
             _currentView = view;
             TitleText.Text = title;
         }

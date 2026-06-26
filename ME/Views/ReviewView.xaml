@@ -5,61 +5,122 @@
         <StackPanel Margin="4">
             <!-- Period Selector -->
             <Border Style="{StaticResource CardStyle}" Padding="16,12" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="定期盘点" FontSize="18" FontWeight="Bold"
-                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button x:Name="WeeklyBtn" Content="本周" Click="Weekly_Click"
-                                Style="{StaticResource PrimaryButtonStyle}" Padding="24,8" Margin="0,0,8,0" />
-                        <Button x:Name="MonthlyBtn" Content="本月" Click="Monthly_Click"
-                                Style="{StaticResource SecondaryButtonStyle}" Padding="24,8" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="定期盘点" FontSize="18" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock x:Name="DateRangeText" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,0" />
                     </StackPanel>
-                </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="WeeklyBtn" Content="本周" Click="Weekly_Click"
+                                Style="{StaticResource PrimaryButtonStyle}" Padding="20,6" Margin="0,0,6,0" />
+                        <Button x:Name="MonthlyBtn" Content="本月" Click="Monthly_Click"
+                                Style="{StaticResource SecondaryButtonStyle}" Padding="20,6" />
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Stats Cards -->
+            <!-- Stats Cards Row -->
             <UniformGrid Columns="4" Margin="0,0,0,12">
-                <Border Style="{StaticResource CardStyle}" Margin="0,0,4,0" Padding="12,16">
+                <!-- Completion Rate -->
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,4,0" Padding="12,14">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="📊" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                        <TextBlock Text="完成率" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="CompletionRateText" Text="0%" FontSize="28" FontWeight="Bold" 
-                                   Foreground="{DynamicResource AccentGreenBrush}" HorizontalAlignment="Center" />
+                        <Grid Width="48" Height="48" Margin="0,0,0,8">
+                            <Ellipse Stroke="{DynamicResource BackgroundBrush}" StrokeThickness="4" />
+                            <Ellipse x:Name="RateRing" Stroke="{DynamicResource AccentGreenBrush}"
+                                     StrokeThickness="4" StrokeDashArray="126" StrokeDashOffset="126"
+                                     StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                     RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.RenderTransform>
+                                    <RotateTransform Angle="-90" />
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                            <TextBlock x:Name="CompletionRateText" Text="0%"
+                                       FontSize="12" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <TextBlock Text="完成率" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Margin="2,0,2,0" Padding="12,16">
+
+                <!-- Tasks Completed -->
+                <Border Style="{StaticResource CardStyle}" Margin="2,0,2,0" Padding="12,14">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="✅" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                        <TextBlock Text="已完成" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="CompletedCountText" Text="0" FontSize="28" FontWeight="Bold" 
+                        <TextBlock x:Name="CompletedCountText" Text="0" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentBlueBrush}" HorizontalAlignment="Center" />
+                        <TextBlock Text="完成任务" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        <TextBlock x:Name="CompletedTrendText" Text="" FontSize="10"
+                                   Foreground="{DynamicResource AccentGreenBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Margin="2,0,2,0" Padding="12,16">
+
+                <!-- Time Invested -->
+                <Border Style="{StaticResource CardStyle}" Margin="2,0,2,0" Padding="12,14">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="⏳" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                        <TextBlock Text="待完成" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="PendingCountText" Text="0" FontSize="28" FontWeight="Bold" 
-                                   Foreground="{DynamicResource AccentPinkBrush}" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="TimeInvestedText" Text="0h" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentPurpleBrush}" HorizontalAlignment="Center" />
+                        <TextBlock Text="时间投入" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        <TextBlock x:Name="TimeDailyAvgText" Text="" FontSize="10"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Margin="4,0,0,0" Padding="12,16">
+
+                <!-- Streak -->
+                <Border Style="{StaticResource CardStyle}" Margin="4,0,0,0" Padding="12,14">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="🔥" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                        <TextBlock Text="连续打卡" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="StreakDaysText" Text="0天" FontSize="28" FontWeight="Bold" 
+                        <TextBlock x:Name="StreakDaysText" Text="0" FontSize="28" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentYellowBrush}" HorizontalAlignment="Center" />
+                        <TextBlock Text="连续打卡" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        <TextBlock x:Name="StreakBestText" Text="" FontSize="10"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </UniformGrid>
 
-            <!-- Daily Line Chart -->
+            <!-- Middle Row: Task Type Breakdown + Time Allocation -->
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="8" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Task Type Breakdown -->
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="16">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="任务分类统计" FontSize="14" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
+                        <StackPanel x:Name="TaskTypePanel" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Time Allocation by Tag -->
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="16">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="时间分配" FontSize="14" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
+                        <StackPanel x:Name="TimeAllocPanel" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Daily Trend Chart -->
             <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12" Padding="16">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="每日打卡趋势" FontSize="15" FontWeight="Bold"
+                    <TextBlock DockPanel.Dock="Top" Text="每日打卡趋势" FontSize="14" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
-                    <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8" 
-                            Padding="16,12" Height="240">
+                    <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="8"
+                            Padding="16,12" Height="220">
                         <Grid x:Name="ChartGrid">
                             <Canvas x:Name="ChartCanvas" />
                         </Grid>
@@ -70,7 +131,7 @@
             <!-- Goal Progress -->
             <Border Style="{StaticResource CardStyle}" Padding="16">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="目标进度" FontSize="15" FontWeight="Bold"
+                    <TextBlock DockPanel.Dock="Top" Text="目标进度" FontSize="14" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
                     <ItemsControl x:Name="GoalProgressList">
                         <ItemsControl.ItemTemplate>
@@ -84,7 +145,7 @@
                                             <ColumnDefinition Width="60" />
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0" Width="8" Height="8" CornerRadius="4"
-                                                Background="{DynamicResource PrimaryBrush}"
+                                                Background="{Binding ColorBrush}"
                                                 VerticalAlignment="Center" Margin="0,0,10,0" />
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
@@ -92,10 +153,10 @@
                                             <ProgressBar Value="{Binding Progress}" Maximum="100" Height="6"
                                                          Margin="0,4,0,0"
                                                          Background="{DynamicResource BackgroundBrush}"
-                                                         Foreground="{DynamicResource PrimaryBrush}" />
+                                                         Foreground="{Binding ColorBrush}" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" Text="{Binding ProgressText}" FontSize="12"
-                                                   Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold"
+                                                   Foreground="{Binding ColorBrush}" FontWeight="SemiBold"
                                                    VerticalAlignment="Center" TextAlignment="Right" />
                                     </Grid>
                                 </Border>

@@ -30,6 +30,11 @@ namespace ME.Views
         // Edge snap
         private const double SnapThreshold = 20.0;
 
+        // Expand direction
+        private enum ExpandDir { RightDown, LeftDown, RightUp, LeftUp }
+        private ExpandDir _expandDir = ExpandDir.RightDown;
+        private double _pillLeft, _pillTop;
+
         public FloatingWindow()
         {
             InitializeComponent();
@@ -112,35 +117,84 @@ namespace ME.Views
         private void Expand()
         {
             _isExpanded = true;
+
+            // Save pill position
+            _pillLeft = Left;
+            _pillTop = Top;
+            var pillWidth = ActualWidth;
+            var pillHeight = ActualHeight;
+
+            // Determine expand direction based on screen position
+            var screen = SystemParameters.WorkArea;
+            var centerX = Left + pillWidth / 2;
+            var centerY = Top + pillHeight / 2;
+            bool goLeft = centerX > screen.Left + screen.Width / 2;
+            bool goUp = centerY > screen.Top + screen.Height / 2;
+
+            _expandDir = goLeft
+                ? (goUp ? ExpandDir.LeftUp : ExpandDir.LeftDown)
+                : (goUp ? ExpandDir.RightUp : ExpandDir.RightDown);
+
+            // Swap panels
             CollapsedPanel.Visibility = Visibility.Collapsed;
             ExpandedPanel.Visibility = Visibility.Visible;
             LoadTaskList();
             StartDotPulse();
 
-            // Animate window size + content scale
+            // Set expanded size
             SizeToContent = SizeToContent.Manual;
             Width = 280;
             Height = 420;
 
+            // Adjust position so expanded panel opens in the right direction
+            switch (_expandDir)
+            {
+                case ExpandDir.LeftDown:
+                    Left = _pillLeft + pillWidth - 280;
+                    break;
+                case ExpandDir.RightUp:
+                    Top = _pillTop + pillHeight - 420;
+                    break;
+                case ExpandDir.LeftUp:
+                    Left = _pillLeft + pillWidth - 280;
+                    Top = _pillTop + pillHeight - 420;
+                    break;
+            }
+
+            // Set scale center for animation origin (scale from the pill's corner)
+            switch (_expandDir)
+            {
+                case ExpandDir.RightDown:
+                    ContentScale.CenterX = 0; ContentScale.CenterY = 0;
+                    break;
+                case ExpandDir.LeftDown:
+                    ContentScale.CenterX = 280; ContentScale.CenterY = 0;
+                    break;
+                case ExpandDir.RightUp:
+                    ContentScale.CenterX = 0; ContentScale.CenterY = 420;
+                    break;
+                case ExpandDir.LeftUp:
+                    ContentScale.CenterX = 280; ContentScale.CenterY = 420;
+                    break;
+            }
+
+            // Animate scale in
             ContentScale.ScaleX = 0.3;
             ContentScale.ScaleY = 0.3;
             var scaleAnim = new DoubleAnimation(0.3, 1, TimeSpan.FromSeconds(0.25))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
-            var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.2));
             ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
             ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
         }
 
         private void Collapse()
         {
-            // Animate content scale out, then swap panels
             var scaleAnim = new DoubleAnimation(1, 0.3, TimeSpan.FromSeconds(0.2))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
             };
-            var opacityAnim = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.15));
 
             scaleAnim.Completed += (s, e) =>
             {
@@ -148,14 +202,25 @@ namespace ME.Views
                 ExpandedPanel.Visibility = Visibility.Collapsed;
                 CollapsedPanel.Visibility = Visibility.Visible;
 
-                // Reset and snap window to pill size
+                // Reset scale
                 ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
                 ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
                 ContentScale.ScaleX = 1;
                 ContentScale.ScaleY = 1;
+                ContentScale.CenterX = 0;
+                ContentScale.CenterY = 0;
+
+                // Restore pill size
                 SizeToContent = SizeToContent.WidthAndHeight;
                 Width = double.NaN;
                 Height = double.NaN;
+
+                // Restore pill position so it stays in the same spot
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Left = _pillLeft;
+                    Top = _pillTop;
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
             };
 
             ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
@@ -250,45 +315,53 @@ namespace ME.Views
 
         private void ShowContextMenu()
         {
-            Brush cardBrush, borderBrush, textBrush;
+            Brush cardBrush, borderBrush, textBrush, primaryBrush;
             try { cardBrush = (Brush)FindResource("CardBrush"); }
             catch { cardBrush = new SolidColorBrush(Color.FromRgb(44, 44, 46)); }
             try { borderBrush = (Brush)FindResource("BorderBrush"); }
             catch { borderBrush = new SolidColorBrush(Color.FromRgb(58, 58, 60)); }
             try { textBrush = (Brush)FindResource("TextBrush"); }
             catch { textBrush = Brushes.White; }
+            try { primaryBrush = (Brush)FindResource("PrimaryBrush"); }
+            catch { primaryBrush = new SolidColorBrush(Color.FromRgb(0, 122, 255)); }
+
+            // Create a themed MenuItem style with blue highlight
+            var menuItemStyle = new Style(typeof(MenuItem));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.BackgroundProperty, cardBrush));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.ForegroundProperty, textBrush));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.BorderBrushProperty, borderBrush));
+            var trigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
+            trigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, primaryBrush));
+            trigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, Brushes.White));
+            menuItemStyle.Triggers.Add(trigger);
 
             var menu = new ContextMenu
             {
                 Background = cardBrush,
-                BorderBrush = borderBrush
+                BorderBrush = borderBrush,
+                Foreground = textBrush
             };
+            menu.Resources[typeof(MenuItem)] = menuItemStyle;
 
-            // ── 计时器 submenu ──
-            var timerMenu = new MenuItem
-            {
-                Header = "计时器",
-                Foreground = textBrush,
-                Background = cardBrush,
-                BorderBrush = borderBrush
-            };
             var tags = _tagRepo.GetAllTags();
             var runningTagId = SharedTimerService.IsRunning ? SharedTimerService.SelectedTagId : -1;
 
-            // Stop current (inside submenu)
+            // ── Stop current (main menu, not submenu) ──
             if (SharedTimerService.IsRunning)
             {
                 var currentTag = _tagRepo.GetTagById(runningTagId);
                 var stopItem = new MenuItem
                 {
                     Header = $"■ 停止 [{currentTag?.Name ?? "未知"}]",
-                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF3B30")),
-                    Background = cardBrush
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF3B30"))
                 };
                 stopItem.Click += (s, ev) => SharedTimerService.StopCurrent();
-                timerMenu.Items.Add(stopItem);
-                timerMenu.Items.Add(new Separator());
+                menu.Items.Add(stopItem);
+                menu.Items.Add(new Separator());
             }
+
+            // ── 计时器 submenu (tags only) ──
+            var timerMenu = new MenuItem { Header = "计时器" };
 
             foreach (var tag in tags)
             {
@@ -300,8 +373,6 @@ namespace ME.Views
                 var item = new MenuItem
                 {
                     Header = (isRunning ? "● " : "") + tag.Name,
-                    Foreground = textBrush,
-                    Background = cardBrush,
                     Icon = new Border
                     {
                         Width = 10, Height = 10, CornerRadius = new CornerRadius(5),
@@ -323,7 +394,7 @@ namespace ME.Views
             menu.Items.Add(timerMenu);
 
             // Show main window
-            var showItem = new MenuItem { Header = "显示主窗口", Foreground = textBrush, Background = cardBrush };
+            var showItem = new MenuItem { Header = "显示主窗口" };
             showItem.Click += (s, ev) =>
             {
                 var main = Application.Current.MainWindow;
@@ -337,7 +408,7 @@ namespace ME.Views
             menu.Items.Add(showItem);
 
             // Hide
-            var hideItem = new MenuItem { Header = "隐藏悬浮窗", Foreground = textBrush, Background = cardBrush };
+            var hideItem = new MenuItem { Header = "隐藏悬浮窗" };
             hideItem.Click += (s, ev) => Hide();
             menu.Items.Add(hideItem);
 
