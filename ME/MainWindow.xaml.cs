@@ -267,11 +267,6 @@ namespace ME
             }
         }
 
-        public void SetFloatingWindowSize(double size)
-        {
-            _floatingWindow?.SetSize(size);
-        }
-
         // ========== NAVIGATION ==========
         private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

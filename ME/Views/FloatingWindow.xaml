@@ -7,40 +7,125 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
-        ResizeMode="CanResizeWithGrip"
+        ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        MinWidth="100" MinHeight="36"
-        MaxWidth="300" MaxHeight="80"
         Left="100" Top="100"
         Loaded="Window_Loaded"
-        Closing="Window_Closing"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown"
-        MouseRightButtonDown="Window_MouseRightButtonDown">
-    <Border x:Name="MainBorder" CornerRadius="10" Padding="8,6"
+        Closing="Window_Closing">
+    <Window.Resources>
+        <!-- Collapse/expand animation duration -->
+        <Duration x:Key="AnimDuration">0:0:0.25</Duration>
+    </Window.Resources>
+
+    <Border x:Name="MainBorder" CornerRadius="24" ClipToBounds="True"
             Background="{DynamicResource CardBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="8" Opacity="0.3" ShadowDepth="2" />
+            <DropShadowEffect BlurRadius="12" Opacity="0.3" ShadowDepth="3" />
         </Border.Effect>
+
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+            <!-- ═══ COLLAPSED PILL ═══ -->
+            <Border x:Name="CollapsedPanel" Background="Transparent"
+                    Padding="14,8" Cursor="Hand"
+                    MouseLeftButtonDown="Pill_MouseLeftButtonDown"
+                    MouseRightButtonDown="Window_MouseRightButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-            <!-- Tag color dot -->
-            <Border x:Name="TagDot" Width="10" Height="10" CornerRadius="5"
-                    Background="#808080" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <!-- Tag color dot with pulse animation -->
+                    <Border x:Name="TagDot" Width="10" Height="10" CornerRadius="5"
+                            Background="#808080" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="TagDotGlow" BlurRadius="0" Opacity="0"
+                                              ShadowDepth="0" Color="#808080" />
+                        </Border.Effect>
+                    </Border>
 
-            <!-- Timer + tag name -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock x:Name="TimerText" Text="00:00:00"
-                           FontSize="14" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextBrush}" />
-                <TextBlock x:Name="TagNameText" Text="未计时"
-                           FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
-                           Margin="0,-2,0,0" />
-            </StackPanel>
+                    <!-- Timer + tag name -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="TimerText" Text="00:00:00"
+                                   FontSize="15" FontWeight="SemiBold" FontFamily="Segoe UI Mono, Consolas"
+                                   Foreground="{DynamicResource TextBrush}" />
+                        <TextBlock x:Name="TagNameText" Text="未计时"
+                                   FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   Margin="0,-2,0,0" />
+                    </StackPanel>
+
+                    <!-- Expand arrow -->
+                    <TextBlock x:Name="ExpandArrow" Grid.Column="2" Text="▾"
+                               FontSize="14" Foreground="{DynamicResource SecondaryTextBrush}"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                </Grid>
+            </Border>
+
+            <!-- ═══ EXPANDED PANEL ═══ -->
+            <Border x:Name="ExpandedPanel" Background="Transparent"
+                    Width="280" Height="420" Visibility="Collapsed"
+                    MouseRightButtonDown="Window_MouseRightButtonDown">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Header: timer with collapse arrow -->
+                    <Border Grid.Row="0" Padding="16,12" Cursor="Hand"
+                            MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                            MouseRightButtonDown="Window_MouseRightButtonDown">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Large tag dot -->
+                            <Border x:Name="ExpTagDot" Width="14" Height="14" CornerRadius="7"
+                                    Background="#808080" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <!-- Timer + tag -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="ExpTimerText" Text="00:00:00"
+                                           FontSize="20" FontWeight="Bold" FontFamily="Segoe UI Mono, Consolas"
+                                           Foreground="{DynamicResource TextBrush}" />
+                                <TextBlock x:Name="ExpTagNameText" Text="未计时"
+                                           FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" />
+                            </StackPanel>
+
+                            <!-- Collapse arrow -->
+                            <TextBlock x:Name="CollapseArrow" Grid.Column="2" Text="▴"
+                                       FontSize="16" Foreground="{DynamicResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Separator -->
+                    <Border Grid.Row="1" Height="1"
+                            Background="{DynamicResource BorderBrush}" Margin="16,0" />
+
+                    <!-- Task list -->
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                                  Padding="12,8" HorizontalAlignment="Stretch"
+                                  BorderThickness="0" Background="Transparent">
+                        <StackPanel x:Name="TaskListPanel" />
+                    </ScrollViewer>
+
+                    <!-- Tag chips row -->
+                    <Border Grid.Row="3" Padding="12,8"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="TagChipsPanel" Orientation="Horizontal" />
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>
