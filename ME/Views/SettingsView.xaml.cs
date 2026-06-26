@@ -241,7 +241,7 @@ namespace ME.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"设置开机启动失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConfirmDialog.Show(Window.GetWindow(this), "错误", $"设置开机启动失败: {ex.Message}", "确定");
             }
         }
 
@@ -332,12 +332,12 @@ namespace ME.Views
                     File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(merged, options));
                     _settingsRepo.SetValue(SettingsKeys.LastBackupDate, $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                     LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                    System.Windows.MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ConfirmDialog.Show(Window.GetWindow(this), "提示", "备份成功!", "确定");
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConfirmDialog.Show(Window.GetWindow(this), "错误", $"备份失败: {ex.Message}", "确定");
             }
         }
 
@@ -382,12 +382,12 @@ namespace ME.Views
                     File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(merged, options));
                     _settingsRepo.SetValue(SettingsKeys.LastBackupDate, $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                     LastBackupText.Text = $"上次备份: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                    System.Windows.MessageBox.Show("备份成功!", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ConfirmDialog.Show(Window.GetWindow(this), "提示", "备份成功!", "确定");
                 }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"备份失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConfirmDialog.Show(Window.GetWindow(this), "错误", $"备份失败: {ex.Message}", "确定");
             }
         }
 
@@ -422,12 +422,12 @@ namespace ME.Views
                         File.Copy(dlg.FileName, Path.Combine(dataDir, Path.GetFileName(dlg.FileName)), true);
                     }
 
-                    MessageBox.Show("导入成功! 请重启应用以加载数据。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ConfirmDialog.Show(Window.GetWindow(this), "提示", "导入成功! 请重启应用以加载数据。", "确定");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConfirmDialog.Show(Window.GetWindow(this), "错误", $"导入失败: {ex.Message}", "确定");
             }
         }
 

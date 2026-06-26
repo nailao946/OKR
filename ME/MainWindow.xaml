@@ -11,13 +11,17 @@
         StateChanged="Window_StateChanged"
         Activated="Window_Activated"
         Deactivated="Window_Deactivated"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        SizeChanged="Window_SizeChanged">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0" GlassFrameThickness="0"
                       ResizeBorderThickness="6" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
     <Border x:Name="WindowBorder" Background="{DynamicResource BackgroundBrush}" CornerRadius="12"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <Border.Clip>
+            <RectangleGeometry x:Name="WindowClip" Rect="0,0,1200,700" RadiusX="12" RadiusY="12" />
+        </Border.Clip>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40" />

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using ME.Data;
@@ -790,7 +791,7 @@ namespace ME.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"导出失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ConfirmDialog.Show(Window.GetWindow(this), "错误", $"导出失败: {ex.Message}", "确定");
                 }
             }
         }
@@ -940,6 +941,8 @@ namespace ME.Views
             double cx = 60, cy = 60, r = 50;
             double startAngle = 0;
 
+            // Build slices first (hidden), then animate them in
+            var slices = new List<(System.Windows.Shapes.Path path, double targetAngle, double sweepAngle)>();
             foreach (var kv in tagTimes.OrderByDescending(k => k.Value))
             {
                 var tag = _allTags.FirstOrDefault(t => t.Id == kv.Key);
@@ -952,8 +955,43 @@ namespace ME.Views
                 path.Cursor = Cursors.Hand;
                 path.Tag = new PieSliceInfo { Tag = tag, Duration = kv.Value, Pct = pct, Color = color };
                 path.MouseLeftButtonDown += PieSlice_Click;
+
+                // Start invisible
+                path.Opacity = 0;
+
                 canvas.Children.Add(path);
+                slices.Add((path, startAngle, sweepAngle));
                 startAngle += sweepAngle;
+            }
+
+            // Animate each slice with staggered entrance
+            for (int i = 0; i < slices.Count; i++)
+            {
+                var (path, _, _) = slices[i];
+                var delay = TimeSpan.FromMilliseconds(i * 80);
+
+                var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                path.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+
+                // Scale from center
+                var scale = new ScaleTransform(0.8, 0.8, cx, cy);
+                path.RenderTransform = scale;
+                var scaleXAnim = new DoubleAnimation(0.8, 1.0, TimeSpan.FromMilliseconds(400))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 }
+                };
+                var scaleYAnim = new DoubleAnimation(0.8, 1.0, TimeSpan.FromMilliseconds(400))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 }
+                };
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
             }
         }
 

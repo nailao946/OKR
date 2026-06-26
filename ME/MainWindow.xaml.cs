@@ -132,6 +132,20 @@ namespace ME
             MaximizeBtn.Content = WindowState == WindowState.Maximized ? "❐" : "□";
         }
 
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            var w = ActualWidth;
+            var h = ActualHeight;
+            if (w > 0 && h > 0)
+            {
+                var radius = WindowState == WindowState.Maximized ? 0.0 : 12.0;
+                WindowClip.Rect = new Rect(0, 0, w, h);
+                WindowClip.RadiusX = radius;
+                WindowClip.RadiusY = radius;
+                WindowBorder.CornerRadius = new CornerRadius(radius);
+            }
+        }
+
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
