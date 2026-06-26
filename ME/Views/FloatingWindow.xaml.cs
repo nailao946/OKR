@@ -315,31 +315,48 @@ namespace ME.Views
 
         private void ShowContextMenu()
         {
-            Brush cardBrush, borderBrush, textBrush, primaryBrush;
+            Brush cardBrush, textBrush, primaryBrush, hoverBrush;
             try { cardBrush = (Brush)FindResource("CardBrush"); }
             catch { cardBrush = new SolidColorBrush(Color.FromRgb(44, 44, 46)); }
-            try { borderBrush = (Brush)FindResource("BorderBrush"); }
-            catch { borderBrush = new SolidColorBrush(Color.FromRgb(58, 58, 60)); }
             try { textBrush = (Brush)FindResource("TextBrush"); }
             catch { textBrush = Brushes.White; }
             try { primaryBrush = (Brush)FindResource("PrimaryBrush"); }
             catch { primaryBrush = new SolidColorBrush(Color.FromRgb(0, 122, 255)); }
+            hoverBrush = new SolidColorBrush(Color.FromArgb(30, 0, 122, 255));
 
-            // Create a themed MenuItem style with blue highlight
             var menuItemStyle = new Style(typeof(MenuItem));
             menuItemStyle.Setters.Add(new Setter(MenuItem.BackgroundProperty, cardBrush));
             menuItemStyle.Setters.Add(new Setter(MenuItem.ForegroundProperty, textBrush));
-            menuItemStyle.Setters.Add(new Setter(MenuItem.BorderBrushProperty, borderBrush));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.BorderBrushProperty, Brushes.Transparent));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.BorderThicknessProperty, new Thickness(1)));
+            menuItemStyle.Setters.Add(new Setter(MenuItem.PaddingProperty, new Thickness(10, 6, 10, 6)));
             var trigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
-            trigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, primaryBrush));
-            trigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, Brushes.White));
+            trigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, hoverBrush));
+            trigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, textBrush));
+            trigger.Setters.Add(new Setter(MenuItem.BorderBrushProperty, primaryBrush));
             menuItemStyle.Triggers.Add(trigger);
+
+            var subMenuItemStyle = new Style(typeof(MenuItem));
+            subMenuItemStyle.Setters.Add(new Setter(MenuItem.BackgroundProperty, cardBrush));
+            subMenuItemStyle.Setters.Add(new Setter(MenuItem.ForegroundProperty, textBrush));
+            subMenuItemStyle.Setters.Add(new Setter(MenuItem.BorderBrushProperty, Brushes.Transparent));
+            subMenuItemStyle.Setters.Add(new Setter(MenuItem.BorderThicknessProperty, new Thickness(1)));
+            subMenuItemStyle.Setters.Add(new Setter(MenuItem.PaddingProperty, new Thickness(10, 5, 10, 5)));
+            var subTrigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
+            subTrigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, hoverBrush));
+            subTrigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, textBrush));
+            subTrigger.Setters.Add(new Setter(MenuItem.BorderBrushProperty, primaryBrush));
+            subMenuItemStyle.Triggers.Add(subTrigger);
 
             var menu = new ContextMenu
             {
                 Background = cardBrush,
-                BorderBrush = borderBrush,
-                Foreground = textBrush
+                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 128, 128, 128)),
+                BorderThickness = new Thickness(1),
+                Foreground = textBrush,
+                Padding = new Thickness(4),
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+                PlacementTarget = this
             };
             menu.Resources[typeof(MenuItem)] = menuItemStyle;
 
@@ -357,11 +374,11 @@ namespace ME.Views
                 };
                 stopItem.Click += (s, ev) => SharedTimerService.StopCurrent();
                 menu.Items.Add(stopItem);
-                menu.Items.Add(new Separator());
             }
 
             // ── 计时器 submenu (tags only) ──
             var timerMenu = new MenuItem { Header = "计时器" };
+            timerMenu.Resources[typeof(MenuItem)] = subMenuItemStyle;
 
             foreach (var tag in tags)
             {
@@ -400,7 +417,7 @@ namespace ME.Views
                 var main = Application.Current.MainWindow;
                 if (main != null)
                 {
-                    main.Show();
+                    ((MainWindow)main).ShowWithAnimation();
                     main.WindowState = WindowState.Normal;
                     main.Activate();
                 }
@@ -412,8 +429,6 @@ namespace ME.Views
             hideItem.Click += (s, ev) => Hide();
             menu.Items.Add(hideItem);
 
-            menu.PlacementTarget = this;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             menu.IsOpen = true;
         }
 

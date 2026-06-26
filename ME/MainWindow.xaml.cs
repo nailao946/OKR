@@ -99,7 +99,7 @@ namespace ME
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
-            WindowState = WindowState.Minimized;
+            AnimateWindowState(WindowState.Minimized);
         }
 
         private void Maximize_Click(object sender, RoutedEventArgs e)
@@ -113,7 +113,7 @@ namespace ME
         {
             if (_notifyIcon != null && _notifyIcon.Visible)
             {
-                Hide();
+                AnimateHide();
                 var settingsRepo = new SettingsRepository();
                 var showBalloon = settingsRepo.GetValue(SettingsKeys.TrayBalloonEnabled, "True");
                 if (showBalloon == "True")
@@ -123,7 +123,19 @@ namespace ME
             }
             else
             {
-                Application.Current.Shutdown();
+                var transform = WindowBorder.RenderTransform as ScaleTransform;
+                if (transform == null)
+                {
+                    transform = new ScaleTransform(1, 1, 0.5, 0.5);
+                    WindowBorder.RenderTransform = transform;
+                }
+                var fadeAnim = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(200));
+                var scaleX = new DoubleAnimation(1, 0.92, TimeSpan.FromMilliseconds(200));
+                var scaleY = new DoubleAnimation(1, 0.92, TimeSpan.FromMilliseconds(200));
+                fadeAnim.Completed += (s2, e2) => Application.Current.Shutdown();
+                BeginAnimation(OpacityProperty, fadeAnim);
+                transform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+                transform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
             }
         }
 
@@ -172,6 +184,117 @@ namespace ME
         {
         }
 
+        // ========== WINDOW ANIMATIONS ==========
+        private void AnimateWindowState(WindowState targetState)
+        {
+            var transform = WindowBorder.RenderTransform as ScaleTransform;
+            if (transform == null)
+            {
+                transform = new ScaleTransform(1, 1, 0.5, 0.5);
+                WindowBorder.RenderTransform = transform;
+            }
+
+            var fadeAnim = new DoubleAnimation(1, 0.85, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            var scaleX = new DoubleAnimation(1, 0.96, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            var scaleY = new DoubleAnimation(1, 0.96, TimeSpan.FromMilliseconds(150))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            fadeAnim.Completed += (s, e) =>
+            {
+                WindowState = targetState;
+                var fadeBack = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(200))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                var scaleBackX = new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(200))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                var scaleBackY = new DoubleAnimation(0.96, 1, TimeSpan.FromMilliseconds(200))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                BeginAnimation(OpacityProperty, fadeBack);
+                transform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleBackX);
+                transform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleBackY);
+            };
+
+            BeginAnimation(OpacityProperty, fadeAnim);
+            transform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+            transform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+        }
+
+        private void AnimateHide()
+        {
+            var transform = WindowBorder.RenderTransform as ScaleTransform;
+            if (transform == null)
+            {
+                transform = new ScaleTransform(1, 1, 0.5, 0.5);
+                WindowBorder.RenderTransform = transform;
+            }
+
+            var fadeAnim = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            var scaleX = new DoubleAnimation(1, 0.92, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+            var scaleY = new DoubleAnimation(1, 0.92, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            fadeAnim.Completed += (s, e) =>
+            {
+                Hide();
+                Opacity = 1;
+                transform.ScaleX = 1;
+                transform.ScaleY = 1;
+            };
+
+            BeginAnimation(OpacityProperty, fadeAnim);
+            transform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+            transform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+        }
+
+        public void ShowWithAnimation()
+        {
+            Show();
+            var transform = WindowBorder.RenderTransform as ScaleTransform;
+            if (transform == null)
+            {
+                transform = new ScaleTransform(1, 1, 0.5, 0.5);
+                WindowBorder.RenderTransform = transform;
+            }
+
+            var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var scaleX = new DoubleAnimation(0.95, 1, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var scaleY = new DoubleAnimation(0.95, 1, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            BeginAnimation(OpacityProperty, fadeAnim);
+            transform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+            transform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+        }
+
         // ========== TRAY ICON ==========
         private void SetupTrayIcon()
         {
@@ -200,7 +323,7 @@ namespace ME
 
                 RebuildTrayMenu();
 
-                _notifyIcon.DoubleClick += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
+                _notifyIcon.DoubleClick += (s, ev) => { ShowWithAnimation(); WindowState = WindowState.Normal; Activate(); };
 
                 var settingsRepo = new SettingsRepository();
                 var minimizeToTray = settingsRepo.GetValue(SettingsKeys.MinimizeToTray, "False");

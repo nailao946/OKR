@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ME.Data;
 using ME.Models;
 using ME.Services;
@@ -228,10 +229,18 @@ namespace ME.Views
                 // Progress bar
                 var pb = new ProgressBar
                 {
-                    Value = progress, Maximum = 100, Height = 8,
+                    Value = 0, Maximum = 100, Height = 8,
                     Margin = new Thickness(0, 5, 0, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, progress, TimeSpan.FromMilliseconds(600))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
 
@@ -386,7 +395,15 @@ namespace ME.Views
                     Margin = new Thickness(0, 4, 120, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor,
-                    Value = pct
+                    Value = 0
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, pct, TimeSpan.FromMilliseconds(500))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
 
@@ -417,14 +434,23 @@ namespace ME.Views
             // Quantitative progress bar for subtask
             else if (isQuant)
             {
+                var quantPct = task.QuantitativeTarget > 0
+                    ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0;
                 var pb = new ProgressBar
                 {
                     Maximum = 100, Height = 4,
                     Margin = new Thickness(0, 4, 120, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor,
-                    Value = task.QuantitativeTarget > 0
-                        ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0
+                    Value = 0
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, quantPct, TimeSpan.FromMilliseconds(500))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
 

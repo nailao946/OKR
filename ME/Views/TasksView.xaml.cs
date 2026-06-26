@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using ME.Core;
 using ME.Data;
@@ -64,13 +66,17 @@ namespace ME.Views
             {
                 MiniTimerText.Text = timeStr;
                 MiniRunningTag.Text = tagName;
+                MiniTimerStatus.Text = "计时中";
                 try
                 {
                     var color = (Color)ColorConverter.ConvertFromString(tagColor);
                     MiniRunningDot.Background = new SolidColorBrush(color);
                     MiniTimerText.Foreground = new SolidColorBrush(color);
+                    MiniTimerRing.Stroke = new SolidColorBrush(color);
                 }
                 catch { }
+                // Animate ring based on seconds progress
+                UpdateTimerRing(timeStr);
             });
         }
 
@@ -87,12 +93,18 @@ namespace ME.Views
                     MiniTimerText.Foreground = (SolidColorBrush)FindResource("TextBrush");
                     MiniTimerToggleBtn.Content = "开始";
                     MiniTimerToggleBtn.Style = (Style)FindResource("PrimaryButtonStyle");
+                    MiniTimerStatus.Text = "";
+                    MiniTimerRing.Opacity = 0.3;
+                    MiniTimerRing.StrokeDashOffset = 94.25;
                     LoadMiniStats();
+                    LoadMiniTaskSummary();
                 }
                 else
                 {
                     MiniTimerToggleBtn.Content = "停止";
                     MiniTimerToggleBtn.Style = (Style)FindResource("DangerButtonStyle");
+                    MiniTimerStatus.Text = "计时中";
+                    MiniTimerRing.Opacity = 1;
                     if (MiniTagComboBox.Items.Count > 0)
                     {
                         foreach (var item in MiniTagComboBox.Items)
@@ -161,6 +173,19 @@ namespace ME.Views
                 var end = r.EndTime ?? DateTime.Now;
                 tagTime[r.TagId] += end - r.StartTime;
             }
+            // Total time
+            var totalSpan = TimeSpan.Zero;
+            foreach (var kv in tagTime) totalSpan += kv.Value;
+            if (totalSpan.TotalMinutes >= 1)
+            {
+                var th = (int)totalSpan.TotalHours;
+                var tm = totalSpan.Minutes;
+                MiniTotalTime.Text = th > 0 ? $"{th}h {tm}m" : $"{tm}m";
+            }
+            else
+            {
+                MiniTotalTime.Text = "";
+            }
             if (tagTime.Count == 0)
             {
                 MiniStatsPanel.Children.Add(new TextBlock { Text = "暂无数据", FontSize = 11, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
@@ -184,6 +209,51 @@ namespace ME.Views
                 var timeStr = h > 0 ? $"{h}h {m}m" : $"{m}m";
                 panel.Children.Add(new TextBlock { Text = $"{name} {timeStr}", FontSize = 11, Foreground = (SolidColorBrush)FindResource("TextBrush") });
                 MiniStatsPanel.Children.Add(panel);
+            }
+            LoadMiniTaskSummary();
+        }
+
+        private void UpdateTimerRing(string timeStr)
+        {
+            // Parse HH:mm:ss and animate ring based on seconds progress within the minute
+            var parts = timeStr.Split(':');
+            if (parts.Length == 3 && int.TryParse(parts[2], out int sec))
+            {
+                var progress = sec / 60.0;
+                var offset = 94.25 * (1 - progress);
+                MiniTimerRing.StrokeDashOffset = offset;
+            }
+        }
+
+        private void LoadMiniTaskSummary()
+        {
+            try
+            {
+                var taskRepo = new TaskRepository();
+                var allTasks = taskRepo.GetAllTasks();
+                var todayStr = _selectedDate.ToString("yyyy-MM-dd");
+                var todayTasks = allTasks.Where(t =>
+                {
+                    if (t.StartDate.HasValue && t.StartDate.Value > _selectedDate) return false;
+                    if (t.EndDate.HasValue && t.EndDate.Value < _selectedDate) return false;
+                    if (t.Type == TaskType.Recurring) return true;
+                    return true;
+                }).ToList();
+                var completed = todayTasks.Count(t => t.IsCompleted);
+                var total = todayTasks.Count;
+                if (total > 0)
+                {
+                    MiniTaskSummary.Visibility = Visibility.Visible;
+                    MiniCompletedCount.Text = $"{completed}/{total}";
+                }
+                else
+                {
+                    MiniTaskSummary.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch
+            {
+                MiniTaskSummary.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -737,10 +807,18 @@ namespace ME.Views
                         : (task.IsCompleted ? 100 : 0));
                 var pb = new ProgressBar
                 {
-                    Value = pbValue, Maximum = 100, Height = 8,
+                    Value = 0, Maximum = 100, Height = 8,
                     Margin = new Thickness(0, 5, 0, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, pbValue, TimeSpan.FromMilliseconds(600))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
             }
@@ -825,7 +903,15 @@ namespace ME.Views
                     Margin = new Thickness(0, 4, 120, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor,
-                    Value = pct
+                    Value = 0
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, pct, TimeSpan.FromMilliseconds(500))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
 
@@ -846,14 +932,23 @@ namespace ME.Views
             // Quantitative progress bar for subtask (using parent task's tag color)
             else if (task.Type == TaskType.Quantitative && task.QuantitativeTarget.HasValue)
             {
+                var quantPct = task.QuantitativeTarget > 0
+                    ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0;
                 var pb = new ProgressBar
                 {
                     Maximum = 100, Height = 4,
                     Margin = new Thickness(0, 4, 120, 0),
                     Background = (SolidColorBrush)FindResource("BackgroundBrush"),
                     Foreground = progressColor,
-                    Value = task.QuantitativeTarget > 0
-                        ? Math.Min((task.QuantitativeCurrent ?? 0) / task.QuantitativeTarget.Value * 100, 100) : 0
+                    Value = 0
+                };
+                pb.Loaded += (s, e) =>
+                {
+                    var anim = new DoubleAnimation(0, quantPct, TimeSpan.FromMilliseconds(500))
+                    {
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    pb.BeginAnimation(ProgressBar.ValueProperty, anim);
                 };
                 textPanel.Children.Add(pb);
 
