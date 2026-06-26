@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -69,10 +70,13 @@ namespace ME.Views
             var firstDay = new DateTime(_currentMonth.Year, _currentMonth.Month, 1);
             var startDay = firstDay.AddDays(-(int)firstDay.DayOfWeek);
 
+            // First pass: collect all tasks per day
+            var dayTaskMap = new Dictionary<string, List<(TaskItem task, string key, Color color, bool completed)>>();
             for (int i = 0; i < 42; i++)
             {
                 var date = startDay.AddDays(i);
-                var dayTasks = new List<CalendarTaskBar>();
+                var dateKey = date.ToString("yyyy-MM-dd");
+                var dayTasks = new List<(TaskItem, string, Color, bool)>();
 
                 foreach (var task in allTasks)
                 {
@@ -100,13 +104,69 @@ namespace ME.Views
                     if (showOnThisDate)
                     {
                         var color = GetTaskColor(task, allTags);
-                        dayTasks.Add(new CalendarTaskBar
-                        {
-                            Title = task.Title,
-                            Color = new SolidColorBrush(color),
-                            Opacity = isCompletedOnDate ? 0.4 : 0.85
-                        });
+                        var key = $"t{task.Id}";
+                        dayTasks.Add((task, key, color, isCompletedOnDate));
                     }
+                }
+
+                dayTaskMap[dateKey] = dayTasks;
+            }
+
+            // Second pass: build CalendarDay objects with connected bars
+            for (int i = 0; i < 42; i++)
+            {
+                var date = startDay.AddDays(i);
+                var dateKey = date.ToString("yyyy-MM-dd");
+                var prevDateKey = date.AddDays(-1).ToString("yyyy-MM-dd");
+                var nextDateKey = date.AddDays(1).ToString("yyyy-MM-dd");
+
+                var taskBars = new List<CalendarTaskBar>();
+                var currentTasks = dayTaskMap.ContainsKey(dateKey) ? dayTaskMap[dateKey] : new List<(TaskItem, string, Color, bool)>();
+                var prevTasks = dayTaskMap.ContainsKey(prevDateKey) ? dayTaskMap[prevDateKey].Select(t => t.Item2).ToHashSet() : new HashSet<string>();
+                var nextTasks = dayTaskMap.ContainsKey(nextDateKey) ? dayTaskMap[nextDateKey].Select(t => t.Item2).ToHashSet() : new HashSet<string>();
+
+                foreach (var (task, key, color, isCompleted) in currentTasks)
+                {
+                    bool hasPrev = prevTasks.Contains(key);
+                    bool hasNext = nextTasks.Contains(key);
+
+                    CornerRadius corner;
+                    Thickness margin;
+
+                    if (hasPrev && hasNext)
+                    {
+                        // Middle: square corners, no gap
+                        corner = new CornerRadius(0);
+                        margin = new Thickness(-1, 1, -1, 1);
+                    }
+                    else if (hasPrev)
+                    {
+                        // End: rounded right only
+                        corner = new CornerRadius(0, 3, 3, 0);
+                        margin = new Thickness(-1, 1, 0, 1);
+                    }
+                    else if (hasNext)
+                    {
+                        // Start: rounded left only
+                        corner = new CornerRadius(3, 0, 0, 3);
+                        margin = new Thickness(0, 1, -1, 1);
+                    }
+                    else
+                    {
+                        // Standalone: all rounded
+                        corner = new CornerRadius(3);
+                        margin = new Thickness(0, 1, 0, 1);
+                    }
+
+                    taskBars.Add(new CalendarTaskBar
+                    {
+                        Title = task.Title,
+                        Color = new SolidColorBrush(color),
+                        Opacity = isCompleted ? 0.4 : 0.85,
+                        CornerRadius = corner,
+                        BarMargin = margin,
+                        TaskKey = key
+                    });
                 }
 
                 bool isToday = date.Date == DateTime.Today;
@@ -139,7 +199,7 @@ namespace ME.Views
                     IsToday = isToday,
                     IsOtherMonth = isOtherMonth,
                     IsSelected = isSelected,
-                    Tasks = dayTasks,
+                    Tasks = taskBars,
                     CellBackground = cellBg,
                     CellBorder = cellBorder,
                     DayBackground = dayBg,
@@ -464,5 +524,8 @@ namespace ME.Views
         public string Title { get; set; }
         public SolidColorBrush Color { get; set; }
         public double Opacity { get; set; }
+        public CornerRadius CornerRadius { get; set; } = new CornerRadius(3);
+        public Thickness BarMargin { get; set; } = new Thickness(0, 1, 0, 1);
+        public string TaskKey { get; set; } // For tracking continuity
     }
 }

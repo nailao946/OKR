@@ -52,6 +52,7 @@ namespace ME
                     _isDarkTheme = ThemeService.IsDarkMode();
                     UpdateThemeButton();
                     ApplyWindowBorderColor();
+                    RebuildTrayMenu();
                 });
             };
         }
@@ -172,7 +173,6 @@ namespace ME
                 }
                 else
                 {
-                    // Fallback: try extract from app resources
                     try
                     {
                         var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
@@ -184,22 +184,8 @@ namespace ME
                     }
                 }
 
-                var menu = new Forms.ContextMenuStrip();
-                var showItem = new Forms.ToolStripMenuItem("显示主窗口");
-                showItem.Click += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
-                menu.Items.Add(showItem);
+                RebuildTrayMenu();
 
-                _floatingMenuItem = new Forms.ToolStripMenuItem("显示悬浮窗");
-                _floatingMenuItem.Click += (s, ev) => ToggleFloatingWindow();
-                menu.Items.Add(_floatingMenuItem);
-
-                menu.Items.Add(new Forms.ToolStripSeparator());
-
-                var exitItem = new Forms.ToolStripMenuItem("退出");
-                exitItem.Click += (s, ev) => { _notifyIcon.Visible = false; CloseFloatingWindowPermanent(); Application.Current.Shutdown(); };
-                menu.Items.Add(exitItem);
-
-                _notifyIcon.ContextMenuStrip = menu;
                 _notifyIcon.DoubleClick += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
 
                 var settingsRepo = new SettingsRepository();
@@ -209,6 +195,31 @@ namespace ME
             catch
             {
             }
+        }
+
+        private void RebuildTrayMenu()
+        {
+            var isDark = ThemeService.IsDarkMode();
+            var menu = new Forms.ContextMenuStrip();
+            menu.Renderer = new ToolStripThemeRenderer(isDark);
+            menu.Padding = new System.Windows.Forms.Padding(4);
+            menu.Font = new System.Drawing.Font("Segoe UI", 10f);
+
+            var showItem = new Forms.ToolStripMenuItem("显示主窗口");
+            showItem.Click += (s, ev) => { Show(); WindowState = WindowState.Normal; Activate(); };
+            menu.Items.Add(showItem);
+
+            _floatingMenuItem = new Forms.ToolStripMenuItem("显示悬浮窗");
+            _floatingMenuItem.Click += (s, ev) => ToggleFloatingWindow();
+            menu.Items.Add(_floatingMenuItem);
+
+            menu.Items.Add(new Forms.ToolStripSeparator());
+
+            var exitItem = new Forms.ToolStripMenuItem("退出");
+            exitItem.Click += (s, ev) => { _notifyIcon.Visible = false; CloseFloatingWindowPermanent(); Application.Current.Shutdown(); };
+            menu.Items.Add(exitItem);
+
+            _notifyIcon.ContextMenuStrip = menu;
         }
 
         public void SetTrayVisible(bool visible)
@@ -301,29 +312,54 @@ namespace ME
             {
                 view = create();
                 view.Visibility = Visibility.Collapsed;
+                view.Opacity = 0;
                 ContentGrid.Children.Add(view);
             }
 
             if (_currentView != null && _currentView != view)
             {
                 var oldView = _currentView;
-                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.12));
+                // Slide out + fade out
+                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.15))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+                };
+                var slideOut = new DoubleAnimation(0, -12, TimeSpan.FromSeconds(0.15))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+                };
+                var oldTransform = oldView.RenderTransform as TranslateTransform ?? new TranslateTransform();
+                oldView.RenderTransform = oldTransform;
+
                 fadeOut.Completed += (s, e) =>
                 {
                     oldView.Visibility = Visibility.Collapsed;
                     oldView.Opacity = 1;
                     oldView.BeginAnimation(UIElement.OpacityProperty, null);
+                    oldTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                    oldTransform.Y = 0;
                 };
                 oldView.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                oldTransform.BeginAnimation(TranslateTransform.YProperty, slideOut);
             }
 
+            // Slide in + fade in
             view.Visibility = Visibility.Visible;
             view.Opacity = 0;
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.18))
+            var transform = view.RenderTransform as TranslateTransform ?? new TranslateTransform();
+            view.RenderTransform = transform;
+            transform.Y = 16;
+
+            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromSeconds(0.25))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            var slideIn = new DoubleAnimation(16, 0, TimeSpan.FromSeconds(0.25))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
             view.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            transform.BeginAnimation(TranslateTransform.YProperty, slideIn);
 
             _currentView = view;
             TitleText.Text = title;
