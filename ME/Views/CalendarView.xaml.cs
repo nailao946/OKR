@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ME.Data;
 using ME.Models;
 using ME.Services;
@@ -209,6 +210,42 @@ namespace ME.Views
 
             CalendarGrid.ItemsSource = days;
             LoadDayTasks(_selectedDate);
+            AnimateCalendarCells();
+        }
+
+        private void AnimateCalendarCells()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                for (int i = 0; i < CalendarGrid.Items.Count; i++)
+                {
+                    var container = CalendarGrid.ItemContainerGenerator.ContainerFromIndex(i) as UIElement;
+                    if (container == null) continue;
+                    container.Opacity = 0;
+                    var delay = TimeSpan.FromMilliseconds(i * 15);
+                    var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    container.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                    var scale = new ScaleTransform(0.85, 0.85);
+                    container.RenderTransform = scale;
+                    container.RenderTransformOrigin = new Point(0.5, 0.5);
+                    var scaleX = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(350))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    var scaleY = new DoubleAnimation(0.85, 1, TimeSpan.FromMilliseconds(350))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private Color GetTaskColor(TaskItem task, List<GoalTag> allTags)
@@ -339,6 +376,33 @@ namespace ME.Views
                 {
                     DayTaskPanel.Children.Add(CreateTaskInfoCard(task, tagName, tagColor, true));
                 }
+            }
+
+            AnimateDayTaskCards();
+        }
+
+        private void AnimateDayTaskCards()
+        {
+            for (int i = 0; i < DayTaskPanel.Children.Count; i++)
+            {
+                var child = DayTaskPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 50);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 10);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
             }
         }
 

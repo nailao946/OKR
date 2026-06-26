@@ -359,6 +359,47 @@ namespace ME.Views
                 curDate = curDate.AddDays(-1);
             }
             StreakDaysText.Text = $"{streak}天";
+
+            AnimateStatsCards();
+        }
+
+        private void AnimateStatsCards()
+        {
+            // Find the parent UniformGrid of CheckInRateText
+            var parent = VisualTreeHelper.GetParent(CheckInRateText);
+            while (parent != null && !(parent is System.Windows.Controls.Primitives.UniformGrid))
+                parent = VisualTreeHelper.GetParent(parent);
+            if (parent is System.Windows.Controls.Primitives.UniformGrid grid)
+            {
+                for (int i = 0; i < grid.Children.Count; i++)
+                {
+                    var child = grid.Children[i] as UIElement;
+                    if (child == null) continue;
+                    child.Opacity = 0;
+                    var delay = TimeSpan.FromMilliseconds(i * 80);
+                    var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                    var scale = new ScaleTransform(0.9, 0.9);
+                    child.RenderTransform = scale;
+                    child.RenderTransformOrigin = new Point(0.5, 0.5);
+                    var scaleX = new DoubleAnimation(0.9, 1, TimeSpan.FromMilliseconds(400))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    var scaleY = new DoubleAnimation(0.9, 1, TimeSpan.FromMilliseconds(400))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+                }
+            }
         }
 
         private void LoadCalendar()
@@ -442,6 +483,42 @@ namespace ME.Views
                 days.Add(dayDisplay);
             }
             CalendarGrid.ItemsSource = days;
+            AnimateDashboardCalendar();
+        }
+
+        private void AnimateDashboardCalendar()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                for (int i = 0; i < CalendarGrid.Items.Count; i++)
+                {
+                    var container = CalendarGrid.ItemContainerGenerator.ContainerFromIndex(i) as UIElement;
+                    if (container == null) continue;
+                    container.Opacity = 0;
+                    var delay = TimeSpan.FromMilliseconds(i * 12);
+                    var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    container.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                    var scale = new ScaleTransform(0.88, 0.88);
+                    container.RenderTransform = scale;
+                    container.RenderTransformOrigin = new Point(0.5, 0.5);
+                    var scaleX = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(300))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    var scaleY = new DoubleAnimation(0.88, 1, TimeSpan.FromMilliseconds(300))
+                    {
+                        BeginTime = delay,
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
     }
 

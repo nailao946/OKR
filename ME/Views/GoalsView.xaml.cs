@@ -117,6 +117,32 @@ namespace ME.Views
             }
 
             BuildGoalTree(GoalsPanel, goals);
+            AnimateGoalCards();
+        }
+
+        private void AnimateGoalCards()
+        {
+            for (int i = 0; i < GoalsPanel.Children.Count; i++)
+            {
+                var child = GoalsPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 60);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 10);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(350))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+            }
         }
 
         private void BuildGoalTree(StackPanel panel, List<Goal> goals)

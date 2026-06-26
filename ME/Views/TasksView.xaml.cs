@@ -95,7 +95,7 @@ namespace ME.Views
                     MiniTimerToggleBtn.Style = (Style)FindResource("PrimaryButtonStyle");
                     MiniTimerStatus.Text = "";
                     MiniTimerRing.Opacity = 0.3;
-                    MiniTimerRing.StrokeDashOffset = 113.1;
+                    MiniTimerRing.StrokeDashOffset = 102.1;
                     LoadMiniStats();
                     LoadMiniTaskSummary();
                 }
@@ -211,6 +211,33 @@ namespace ME.Views
                 MiniStatsPanel.Children.Add(panel);
             }
             LoadMiniTaskSummary();
+            AnimateMiniStats();
+        }
+
+        private void AnimateMiniStats()
+        {
+            // Animate the stats panel children (tag breakdown items)
+            for (int i = 0; i < MiniStatsPanel.Children.Count; i++)
+            {
+                var child = MiniStatsPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 50 + 100);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 6);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(6, 0, TimeSpan.FromMilliseconds(250))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+            }
         }
 
         private void UpdateTimerRing(string timeStr)
@@ -220,7 +247,7 @@ namespace ME.Views
             if (parts.Length == 3 && int.TryParse(parts[2], out int sec))
             {
                 var progress = sec / 60.0;
-                var offset = 113.1 * (1 - progress);
+                var offset = 102.1 * (1 - progress);
                 MiniTimerRing.StrokeDashOffset = offset;
             }
         }
@@ -230,17 +257,60 @@ namespace ME.Views
             try
             {
                 var taskRepo = new TaskRepository();
+                var taskService = new TaskService();
                 var allTasks = taskRepo.GetAllTasks();
-                var todayStr = _selectedDate.ToString("yyyy-MM-dd");
                 var todayTasks = allTasks.Where(t =>
                 {
+                    if (t.IsDeleted) return false;
+                    if (t.ParentTaskId.HasValue) return false;
                     if (t.StartDate.HasValue && t.StartDate.Value > _selectedDate) return false;
                     if (t.EndDate.HasValue && t.EndDate.Value < _selectedDate) return false;
-                    if (t.Type == TaskType.Recurring) return true;
                     return true;
                 }).ToList();
-                var completed = todayTasks.Count(t => t.IsCompleted);
-                var total = todayTasks.Count;
+
+                int completed = 0;
+                int total = todayTasks.Count;
+                foreach (var task in todayTasks)
+                {
+                    if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+                    {
+                        if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
+                        {
+                            int count = taskService.GetCustomRecurringCountOnDate(task.Id, _selectedDate);
+                            if (count >= task.RecurringTargetCount.Value) completed++;
+                        }
+                        else
+                        {
+                            if (taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate))
+                                completed++;
+                        }
+                    }
+                    else if (task.Type == TaskType.Quantitative && task.QuantitativeTarget.HasValue && task.QuantitativeTarget > 0)
+                    {
+                        // Quantitative: check if daily target reached OR overall target reached
+                        double dailyMin = task.QuantitativeDailyMin ?? 0;
+                        double current = task.QuantitativeCurrent ?? 0;
+                        if (dailyMin > 0)
+                        {
+                            // Has daily target: check if today's increment meets daily min
+                            // For simplicity, use overall progress vs daily min
+                            if (current >= task.QuantitativeTarget.Value)
+                                completed++;
+                            else if (dailyMin > 0 && current >= dailyMin)
+                                completed++;
+                        }
+                        else
+                        {
+                            if (task.IsCompleted || current >= task.QuantitativeTarget.Value)
+                                completed++;
+                        }
+                    }
+                    else
+                    {
+                        if (task.IsCompleted) completed++;
+                    }
+                }
+
                 if (total > 0)
                 {
                     MiniTaskSummary.Visibility = Visibility.Visible;
@@ -1226,6 +1296,33 @@ namespace ME.Views
                 }
 
                 TodayGoalsPanel.Children.Add(goalWrapper);
+            }
+
+            AnimateTodayGoals();
+        }
+
+        private void AnimateTodayGoals()
+        {
+            for (int i = 0; i < TodayGoalsPanel.Children.Count; i++)
+            {
+                var child = TodayGoalsPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 60);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 8);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
             }
         }
 

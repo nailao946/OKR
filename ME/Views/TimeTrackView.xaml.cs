@@ -517,6 +517,33 @@ namespace ME.Views
                 });
                 TodayStatsPanel.Children.Add(panel);
             }
+
+            AnimateTodayStats();
+        }
+
+        private void AnimateTodayStats()
+        {
+            for (int i = 0; i < TodayStatsPanel.Children.Count; i++)
+            {
+                var child = TodayStatsPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 40);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 6);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(6, 0, TimeSpan.FromMilliseconds(250))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+            }
         }
 
         private string FormatDuration(TimeSpan ts)
@@ -747,6 +774,33 @@ namespace ME.Views
                 recordBorder.Child = panel;
                 RecordsPanel.Children.Add(recordBorder);
             }
+
+            AnimateRecordCards();
+        }
+
+        private void AnimateRecordCards()
+        {
+            for (int i = 0; i < RecordsPanel.Children.Count; i++)
+            {
+                var child = RecordsPanel.Children[i] as FrameworkElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 40);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var slide = new TranslateTransform(0, 12);
+                child.RenderTransform = slide;
+                var slideAnim = new DoubleAnimation(12, 0, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                slide.BeginAnimation(TranslateTransform.YProperty, slideAnim);
+            }
         }
 
         private void EditRecord(TimeRecord record)
@@ -922,6 +976,40 @@ namespace ME.Views
                 }
 
                 CalendarGrid.Children.Add(cell);
+            }
+
+            AnimateCalendarCells();
+        }
+
+        private void AnimateCalendarCells()
+        {
+            for (int i = 0; i < CalendarGrid.Children.Count; i++)
+            {
+                var child = CalendarGrid.Children[i] as UIElement;
+                if (child == null) continue;
+                child.Opacity = 0;
+                var delay = TimeSpan.FromMilliseconds(i * 15);
+                var fadeAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                child.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
+                var scale = new ScaleTransform(0.9, 0.9);
+                child.RenderTransform = scale;
+                child.RenderTransformOrigin = new Point(0.5, 0.5);
+                var scaleX = new DoubleAnimation(0.9, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                var scaleY = new DoubleAnimation(0.9, 1, TimeSpan.FromMilliseconds(300))
+                {
+                    BeginTime = delay,
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleX);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleY);
             }
         }
 
