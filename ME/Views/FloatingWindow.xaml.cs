@@ -43,6 +43,7 @@ namespace ME.Views
         {
             SharedTimerService.TimerUpdated += OnTimerUpdated;
             SharedTimerService.RunningStateChanged += OnRunningStateChanged;
+            ThemeService.ThemeChanged += OnThemeChanged;
 
             // Restore position
             var left = _settingsRepo.GetValue("FloatingWindowLeft", "");
@@ -72,7 +73,18 @@ namespace ME.Views
             }
             SharedTimerService.TimerUpdated -= OnTimerUpdated;
             SharedTimerService.RunningStateChanged -= OnRunningStateChanged;
+            ThemeService.ThemeChanged -= OnThemeChanged;
             SavePosition();
+        }
+
+        private void OnThemeChanged(string theme)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateDisplay(SharedTimerService.IsRunning);
+                LoadTagChips();
+                if (_isExpanded) LoadTaskList();
+            }));
         }
 
         public void ClosePermanent()
@@ -238,20 +250,28 @@ namespace ME.Views
 
         private void ShowContextMenu()
         {
-            var menu = new ContextMenu();
-            try
-            {
-                menu.Background = (Brush)FindResource("CardBrush");
-                menu.BorderBrush = (Brush)FindResource("BorderBrush");
-            }
-            catch { }
-
-            Brush textBrush;
+            Brush cardBrush, borderBrush, textBrush;
+            try { cardBrush = (Brush)FindResource("CardBrush"); }
+            catch { cardBrush = new SolidColorBrush(Color.FromRgb(44, 44, 46)); }
+            try { borderBrush = (Brush)FindResource("BorderBrush"); }
+            catch { borderBrush = new SolidColorBrush(Color.FromRgb(58, 58, 60)); }
             try { textBrush = (Brush)FindResource("TextBrush"); }
             catch { textBrush = Brushes.White; }
 
+            var menu = new ContextMenu
+            {
+                Background = cardBrush,
+                BorderBrush = borderBrush
+            };
+
             // ── 计时器 submenu ──
-            var timerMenu = new MenuItem { Header = "计时器", Foreground = textBrush };
+            var timerMenu = new MenuItem
+            {
+                Header = "计时器",
+                Foreground = textBrush,
+                Background = cardBrush,
+                BorderBrush = borderBrush
+            };
             var tags = _tagRepo.GetAllTags();
             var runningTagId = SharedTimerService.IsRunning ? SharedTimerService.SelectedTagId : -1;
 
@@ -262,7 +282,8 @@ namespace ME.Views
                 var stopItem = new MenuItem
                 {
                     Header = $"■ 停止 [{currentTag?.Name ?? "未知"}]",
-                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF3B30"))
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF3B30")),
+                    Background = cardBrush
                 };
                 stopItem.Click += (s, ev) => SharedTimerService.StopCurrent();
                 timerMenu.Items.Add(stopItem);
@@ -280,6 +301,7 @@ namespace ME.Views
                 {
                     Header = (isRunning ? "● " : "") + tag.Name,
                     Foreground = textBrush,
+                    Background = cardBrush,
                     Icon = new Border
                     {
                         Width = 10, Height = 10, CornerRadius = new CornerRadius(5),
@@ -301,7 +323,7 @@ namespace ME.Views
             menu.Items.Add(timerMenu);
 
             // Show main window
-            var showItem = new MenuItem { Header = "显示主窗口", Foreground = textBrush };
+            var showItem = new MenuItem { Header = "显示主窗口", Foreground = textBrush, Background = cardBrush };
             showItem.Click += (s, ev) =>
             {
                 var main = Application.Current.MainWindow;
@@ -315,7 +337,7 @@ namespace ME.Views
             menu.Items.Add(showItem);
 
             // Hide
-            var hideItem = new MenuItem { Header = "隐藏悬浮窗", Foreground = textBrush };
+            var hideItem = new MenuItem { Header = "隐藏悬浮窗", Foreground = textBrush, Background = cardBrush };
             hideItem.Click += (s, ev) => Hide();
             menu.Items.Add(hideItem);
 
