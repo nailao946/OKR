@@ -1354,10 +1354,17 @@ namespace ME.Views
                     var repo = new TaskRepository();
                     var oldValue = task.QuantitativeCurrent ?? 0;
                     task.QuantitativeCurrent = dialog.NewValue;
-                    if (task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value)
+                    bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
+                    bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
+                    if (reachedTarget || reachedDailyMin)
                     {
                         task.IsCompleted = true;
                         task.CompletedAt = DateTime.Now;
+                    }
+                    else
+                    {
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
                     }
                     repo.UpdateTask(task);
 
@@ -1371,6 +1378,7 @@ namespace ME.Views
                     }
 
                     SoundService.PlayCompletionSound();
+                    EventAggregator.Instance.Publish("TaskCompleted");
                     LoadData();
                 }
                 return;

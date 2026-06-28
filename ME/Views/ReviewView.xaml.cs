@@ -108,22 +108,22 @@ namespace ME.Views
                     startDate = now.Date;
                     break;
                 case ReviewPeriod.Week:
-                    startDate = now.Date.AddDays(-(int)now.DayOfWeek);
+                    startDate = now.Date.AddDays(-((int)now.DayOfWeek + 6) % 7);
                     break;
                 case ReviewPeriod.Month:
                     startDate = new DateTime(now.Year, now.Month, 1);
                     break;
                 case ReviewPeriod.All:
-                    startDate = DateTime.MinValue;
+                    startDate = now.Date.AddYears(-1);
                     break;
                 default:
-                    startDate = now.Date.AddDays(-(int)now.DayOfWeek);
+                    startDate = now.Date.AddDays(-((int)now.DayOfWeek + 6) % 7);
                     break;
             }
-            var startStr = startDate == DateTime.MinValue ? "2000-01-01" : startDate.ToString("yyyy-MM-dd");
+            var startStr = startDate.ToString("yyyy-MM-dd");
             var endStr = now.ToString("yyyy-MM-dd");
 
-            DateRangeText.Text = startDate == DateTime.MinValue
+            DateRangeText.Text = _currentPeriod == ReviewPeriod.All
                 ? $"全部 — {now:yyyy/MM/dd}"
                 : $"{startDate:MM/dd} — {now:MM/dd}";
 
@@ -161,35 +161,46 @@ namespace ME.Views
             CompletedCountText.Text = completed.ToString();
 
             // Previous period comparison
-            DateTime prevStart;
+            int prevCompletions = 0;
+            DateTime prevStart, prevEnd;
             switch (_currentPeriod)
             {
                 case ReviewPeriod.Today:
                     prevStart = startDate.AddDays(-1);
+                    prevEnd = startDate.AddDays(-1);
                     break;
                 case ReviewPeriod.Week:
                     prevStart = startDate.AddDays(-7);
+                    prevEnd = startDate.AddDays(-1);
                     break;
                 case ReviewPeriod.Month:
                     prevStart = startDate.AddMonths(-1);
+                    prevEnd = startDate.AddDays(-1);
                     break;
                 default:
                     prevStart = startDate;
+                    prevEnd = startDate;
                     break;
             }
-            var prevEnd = startDate.AddDays(-1);
-            var prevCompletions = allCompletions
-                .Where(c => c.Date.CompareTo(prevStart.ToString("yyyy-MM-dd")) >= 0
-                         && c.Date.CompareTo(prevEnd.ToString("yyyy-MM-dd")) <= 0)
-                .Count();
+            if (_currentPeriod != ReviewPeriod.All)
+            {
+                prevCompletions = allCompletions
+                    .Where(c => c.Date.CompareTo(prevStart.ToString("yyyy-MM-dd")) >= 0
+                             && c.Date.CompareTo(prevEnd.ToString("yyyy-MM-dd")) <= 0)
+                    .Count();
+            }
             var diff = completed - prevCompletions;
-            if (prevCompletions > 0 || completed > 0)
+            if (_currentPeriod != ReviewPeriod.All && (prevCompletions > 0 || completed > 0))
             {
                 var sign = diff >= 0 ? "+" : "";
                 CompletedTrendText.Text = $"较上期{sign}{diff}";
                 CompletedTrendText.Foreground = diff >= 0
                     ? (Brush)FindResource("AccentGreenBrush")
                     : new SolidColorBrush(Color.FromRgb(255, 59, 48));
+            }
+            else
+            {
+                CompletedTrendText.Text = "";
             }
 
             // Time invested

@@ -327,7 +327,7 @@ namespace ME.Views
                 // Buttons
                 var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
                 btnPanel.Children.Add(CreateGoalButton("编辑", EditGoal_Click, goal));
-                btnPanel.Children.Add(CreateGoalButton("子任务", AddSubtask_Click, goal));
+                btnPanel.Children.Add(CreateGoalButton("+任务", AddSubtask_Click, goal));
                 btnPanel.Children.Add(CreateGoalButton("删除", DeleteGoal_Click, goal));
                 Grid.SetColumn(btnPanel, 1);
                 grid.Children.Add(btnPanel);
@@ -335,9 +335,10 @@ namespace ME.Views
                 card.Child = grid;
                 wrapper.Children.Add(card);
 
-                // Active subtasks
-                var activeTasks = goal.Subtasks?.Where(t => !IsTaskCompletedForDisplay(t)).ToList() ?? new List<TaskItem>();
-                var completedTasks = goal.Subtasks?.Where(t => IsTaskCompletedForDisplay(t)).ToList() ?? new List<TaskItem>();
+                // Active subtasks (root-level only, sub-tasks render under parents)
+                var rootTasks = goal.Subtasks?.Where(t => !t.ParentTaskId.HasValue).ToList() ?? new List<TaskItem>();
+                var activeTasks = rootTasks.Where(t => !IsTaskCompletedForDisplay(t)).ToList();
+                var completedTasks = rootTasks.Where(t => IsTaskCompletedForDisplay(t)).ToList();
 
                 if (activeTasks.Count > 0)
                 {
@@ -355,7 +356,7 @@ namespace ME.Views
                     var activePanel = new StackPanel();
                     foreach (var sub in activeTasks)
                     {
-                        activePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor));
+                        activePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor, goal.Subtasks));
                     }
                     activeExpander.Content = activePanel;
                     wrapper.Children.Add(activeExpander);
@@ -378,7 +379,7 @@ namespace ME.Views
                     var donePanel = new StackPanel();
                     foreach (var sub in completedTasks)
                     {
-                        donePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor));
+                        donePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor, goal.Subtasks));
                     }
                     doneExpander.Content = donePanel;
                     wrapper.Children.Add(doneExpander);
@@ -411,7 +412,7 @@ namespace ME.Views
             return task.IsCompleted;
         }
 
-        private Border CreateGoalSubtaskCard(TaskItem task, string tagColor)
+        private Border CreateGoalSubtaskCard(TaskItem task, string tagColor, List<TaskItem> allGoalTasks = null)
         {
             var card = new Border
             {
@@ -427,6 +428,8 @@ namespace ME.Views
 
             bool isCustomRecurring = task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1;
             bool isCompletedDisplay = IsTaskCompletedForDisplay(task);
+
+            var outerStack = new StackPanel();
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -639,14 +642,34 @@ namespace ME.Views
             Grid.SetColumn(textPanel, 1);
             grid.Children.Add(textPanel);
 
-            // Edit/Delete buttons
+            // Edit/AddSubtask/Delete buttons
             var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            if (!isCompletedDisplay)
+                btnPanel.Children.Add(CreateGoalButton("+子", AddSubtaskToTask_Click, task));
             btnPanel.Children.Add(CreateGoalButton("编辑", EditTaskFromGoal_Click, task));
             btnPanel.Children.Add(CreateGoalButton("删除", DeleteTaskFromGoal_Click, task));
             Grid.SetColumn(btnPanel, 2);
             grid.Children.Add(btnPanel);
 
-            card.Child = grid;
+            outerStack.Children.Add(grid);
+            card.Child = outerStack;
+
+            // Recursively render child tasks
+            if (allGoalTasks != null)
+            {
+                var children = allGoalTasks.Where(t => t.ParentTaskId == task.Id && !t.IsDeleted).ToList();
+                if (children.Count > 0)
+                {
+                    var childMargin = new Thickness(20, 4, 0, 0);
+                    foreach (var child in children)
+                    {
+                        var childCard = CreateGoalSubtaskCard(child, tagColor, allGoalTasks);
+                        childCard.Margin = new Thickness(20, 4, 0, 0);
+                        outerStack.Children.Add(childCard);
+                    }
+                }
+            }
+
             return card;
         }
 
@@ -836,7 +859,7 @@ namespace ME.Views
         {
             if (sender is FrameworkElement fe && fe.Tag is Goal goal)
             {
-                var dialog = new TaskEditDialog(isSubtaskMode: true) { Owner = Window.GetWindow(this), Title = "添加子任务" };
+                var dialog = new TaskEditDialog(isSubtaskMode: true) { Owner = Window.GetWindow(this), Title = "添加任务" };
                 if (dialog.ShowDialog() == true && dialog.ResultTask != null)
                 {
                     dialog.ResultTask.GoalId = goal.Id;
@@ -844,9 +867,29 @@ namespace ME.Views
                     var id = repo.InsertTask(dialog.ResultTask);
                     dialog.ResultTask.Id = id;
 
-                    // Recalculate goal progress if CountTowardsParent
                     if (dialog.ResultTask.CountTowardsParent)
                         RecalcGoalProgressFromSubtasks(goal.Id, repo);
+
+                    LoadGoalsWithSections();
+                }
+            }
+        }
+
+        private void AddSubtaskToTask_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is TaskItem parentTask)
+            {
+                var dialog = new TaskEditDialog(isSubtaskMode: true) { Owner = Window.GetWindow(this), Title = "添加子任务" };
+                if (dialog.ShowDialog() == true && dialog.ResultTask != null)
+                {
+                    dialog.ResultTask.ParentTaskId = parentTask.Id;
+                    dialog.ResultTask.GoalId = parentTask.GoalId;
+                    var repo = new TaskRepository();
+                    var id = repo.InsertTask(dialog.ResultTask);
+                    dialog.ResultTask.Id = id;
+
+                    if (dialog.ResultTask.CountTowardsParent && parentTask.GoalId.HasValue)
+                        RecalcGoalProgressFromSubtasks(parentTask.GoalId.Value, repo);
 
                     LoadGoalsWithSections();
                 }
@@ -927,10 +970,17 @@ namespace ME.Views
                         var oldValue = task.QuantitativeCurrent ?? 0;
                         task.QuantitativeCurrent = dialog.NewValue;
                         var delta = task.QuantitativeCurrent.Value - oldValue;
-                        if (task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value)
+                        bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
+                        bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
+                        if (reachedTarget || reachedDailyMin)
                         {
                             task.IsCompleted = true;
                             task.CompletedAt = DateTime.Now;
+                        }
+                        else
+                        {
+                            task.IsCompleted = false;
+                            task.CompletedAt = null;
                         }
                         repo2.UpdateTask(task);
 

@@ -674,7 +674,9 @@ namespace ME.Views
                     if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
                     {
                         task.QuantitativeCurrent = (task.QuantitativeCurrent ?? 0) + 1;
-                        if (task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value)
+                        bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
+                        bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
+                        if (reachedTarget || reachedDailyMin)
                         {
                             task.IsCompleted = true;
                             task.CompletedAt = DateTime.Now;
