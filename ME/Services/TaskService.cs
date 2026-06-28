@@ -305,8 +305,8 @@ namespace ME.Services
             {
                 if (task.IsDeleted) continue;
 
-                // For recurring tasks, check if they should show on this date
-                if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+                // For recurring tasks (including combined recurring+quantitative), check schedule
+                if ((task.Type == TaskType.Recurring || (task.Type == TaskType.Quantitative && task.RecurringPattern.HasValue)) && task.RecurringPattern.HasValue)
                 {
                     if (ShouldShowRecurringTaskOnDate(task, date))
                     {

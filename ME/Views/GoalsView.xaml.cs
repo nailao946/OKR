@@ -971,11 +971,16 @@ namespace ME.Views
                         task.QuantitativeCurrent = dialog.NewValue;
                         var delta = task.QuantitativeCurrent.Value - oldValue;
                         bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
-                        bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
-                        if (reachedTarget || reachedDailyMin)
+                        bool isCombined = task.RecurringPattern.HasValue;
+                        if (reachedTarget)
                         {
                             task.IsCompleted = true;
                             task.CompletedAt = DateTime.Now;
+                        }
+                        else if (isCombined)
+                        {
+                            task.IsCompleted = false;
+                            task.CompletedAt = null;
                         }
                         else
                         {

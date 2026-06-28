@@ -551,13 +551,27 @@ namespace ME.Views
 
                 bool showByDate = false;
 
-                if (task.Type == TaskType.Recurring && task.RecurringPattern.HasValue)
+                bool isCombined = task.Type == TaskType.Quantitative && task.RecurringPattern.HasValue;
+                bool isRecurring = task.Type == TaskType.Recurring || isCombined;
+
+                if (isRecurring && task.RecurringPattern.HasValue)
                 {
                     showByDate = taskService.ShouldShowRecurringTaskOnDate(task, _selectedDate);
 
                     if (showByDate)
                     {
-                        bool isCompletedOnDate = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
+                        bool isCompletedOnDate;
+                        if (isCombined)
+                        {
+                            // Combined: check if daily min is met today, or total is fully completed
+                            double dailyMin = task.QuantitativeDailyMin ?? 0;
+                            double current = task.QuantitativeCurrent ?? 0;
+                            isCompletedOnDate = (dailyMin > 0 && current >= dailyMin) || task.IsCompleted;
+                        }
+                        else
+                        {
+                            isCompletedOnDate = taskService.IsRecurringTaskCompletedOnDate(task, _selectedDate);
+                        }
                         var displayTask = new TaskItem
                         {
                             Id = task.Id, Title = task.Title, Description = task.Description,
@@ -630,7 +644,48 @@ namespace ME.Views
 
             mainTasks.Sort((a, b) => b.Priority.CompareTo(a.Priority));
 
-            BuildTaskTree(TasksPanel, mainTasks, subtasksMap, tagColorMap, false);
+            // Build task sections: active + completed
+            TasksPanel.Children.Clear();
+
+            var activeTasks = mainTasks.Where(t => !t.IsCompleted).ToList();
+            var doneTasks = mainTasks.Where(t => t.IsCompleted).ToList();
+
+            if (activeTasks.Count > 0)
+            {
+                TasksPanel.Children.Add(new TextBlock
+                {
+                    Text = $"进行中 ({activeTasks.Count})",
+                    FontSize = 13, FontWeight = FontWeights.SemiBold,
+                    Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
+                    Margin = new Thickness(0, 0, 0, 8)
+                });
+                BuildTaskTree(TasksPanel, activeTasks, subtasksMap, tagColorMap, false);
+            }
+
+            if (doneTasks.Count > 0)
+            {
+                TasksPanel.Children.Add(new TextBlock
+                {
+                    Text = $"今日已完成 ({doneTasks.Count})",
+                    FontSize = 13, FontWeight = FontWeights.SemiBold,
+                    Foreground = (SolidColorBrush)FindResource("AccentGreenBrush"),
+                    Margin = new Thickness(0, 12, 0, 8)
+                });
+                BuildTaskTree(TasksPanel, doneTasks, subtasksMap, tagColorMap, true);
+            }
+
+            if (activeTasks.Count == 0 && doneTasks.Count == 0)
+            {
+                TasksPanel.Children.Add(new TextBlock
+                {
+                    Text = "此日期没有任务",
+                    FontSize = 13,
+                    Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 30, 0, 0)
+                });
+            }
+
             LoadTodayGoals(subtasksMap, tagColorMap);
         }
 
@@ -660,7 +715,6 @@ namespace ME.Views
 
         private void BuildTaskTree(StackPanel panel, List<TaskItem> mainTasks, Dictionary<int, List<TaskItem>> subtasksMap, Dictionary<int, string> tagColorMap, bool isCompleted)
         {
-            panel.Children.Clear();
 
             foreach (var task in mainTasks)
             {
@@ -854,7 +908,8 @@ namespace ME.Views
                         Foreground = progressColor, Margin = new Thickness(3, 0, 8, 0)
                     });
                 }
-                var typeText = task.Type == TaskType.Recurring ? "循环" : task.Type == TaskType.Quantitative ? "量化" : "单次";
+                var typeText = (task.Type == TaskType.Quantitative && task.RecurringPattern.HasValue) ? "循环·量化"
+                    : task.Type == TaskType.Recurring ? "循环" : task.Type == TaskType.Quantitative ? "量化" : "单次";
                 infoPanel.Children.Add(new TextBlock { Text = typeText, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
                 if (task.EndDate.HasValue)
                 {
@@ -1355,11 +1410,17 @@ namespace ME.Views
                     var oldValue = task.QuantitativeCurrent ?? 0;
                     task.QuantitativeCurrent = dialog.NewValue;
                     bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
-                    bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
-                    if (reachedTarget || reachedDailyMin)
+                    bool isCombined = task.RecurringPattern.HasValue;
+                    if (reachedTarget)
                     {
                         task.IsCompleted = true;
                         task.CompletedAt = DateTime.Now;
+                    }
+                    else if (isCombined)
+                    {
+                        // Combined: don't fully complete on daily min alone - let it reappear tomorrow
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
                     }
                     else
                     {

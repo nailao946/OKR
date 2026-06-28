@@ -35,6 +35,7 @@ namespace ME.Data
             return JsonStore.Load<TaskItem>(FileName)
                 .Where(t => !t.IsDeleted && !t.IsCompleted &&
                     (t.Type == TaskType.OneTime ||
+                    (t.Type == TaskType.Quantitative && t.RecurringPattern.HasValue) ||
                     (t.StartDate.HasValue && t.StartDate.Value.Date <= today) ||
                     (t.EndDate.HasValue && t.EndDate.Value.Date >= today)))
                 .OrderByDescending(t => t.Priority).ToList();

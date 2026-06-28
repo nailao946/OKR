@@ -207,6 +207,25 @@ namespace ME.Views
 
             // Floating window
             FloatingWindowToggle.IsChecked = _settingsRepo.GetValue(SettingsKeys.FloatingWindowEnabled, "False") == "True";
+
+            // Week start
+            var weekStart = _settingsRepo.GetValue(SettingsKeys.WeekStartDay, "1");
+            foreach (ComboBoxItem item in WeekStartCombo.Items)
+            {
+                if (item.Tag?.ToString() == weekStart)
+                {
+                    WeekStartCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
+        private void WeekStart_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (WeekStartCombo.SelectedItem is ComboBoxItem item)
+            {
+                _settingsRepo.SetValue(SettingsKeys.WeekStartDay, item.Tag?.ToString() ?? "1");
+            }
         }
 
         private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)

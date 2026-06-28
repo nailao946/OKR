@@ -36,6 +36,15 @@
                     <TextBlock Text="系统设置" FontSize="16" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="每周起始日" FontSize="13" Foreground="{DynamicResource TextBrush}"
+                                   VerticalAlignment="Center" Width="100" />
+                        <ComboBox x:Name="WeekStartCombo" Width="120" SelectionChanged="WeekStart_Changed"
+                                  Style="{StaticResource MacComboBoxStyle}">
+                            <ComboBoxItem Content="周一" Tag="1" />
+                            <ComboBoxItem Content="周日" Tag="0" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <CheckBox x:Name="AutoStartToggle" Checked="AutoStartToggle_Changed" Unchecked="AutoStartToggle_Changed"
                                   VerticalAlignment="Center" />
                         <TextBlock Text="开机自动启动" Foreground="{DynamicResource TextBrush}" FontSize="13"
@@ -164,7 +173,7 @@
                 <StackPanel>
                     <TextBlock Text="关于目标地图" FontSize="16" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8" />
-                    <TextBlock Text="版本 1.8.1" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    <TextBlock Text="版本 1.8.2" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" />
                     <TextBlock Text="纯本地离线运行，保护您的隐私数据安全" FontSize="12"
                                Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0" />
                     <TextBlock Text="基于 .NET 8 WPF + ModernWpf 开发" FontSize="12"

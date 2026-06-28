@@ -20,6 +20,7 @@ namespace ME.Models
         public const string TraySoundEnabled = "TraySoundEnabled";
         public const string TrayBalloonEnabled = "TrayBalloonEnabled";
         public const string FloatingWindowEnabled = "FloatingWindowEnabled";
+        public const string WeekStartDay = "WeekStartDay";
     }
 
     public enum AppTheme

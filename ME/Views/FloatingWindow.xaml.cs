@@ -675,8 +675,18 @@ namespace ME.Views
                     {
                         task.QuantitativeCurrent = (task.QuantitativeCurrent ?? 0) + 1;
                         bool reachedTarget = task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value;
-                        bool reachedDailyMin = task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
-                        if (reachedTarget || reachedDailyMin)
+                        bool isCombined = task.RecurringPattern.HasValue;
+                        if (reachedTarget)
+                        {
+                            task.IsCompleted = true;
+                            task.CompletedAt = DateTime.Now;
+                        }
+                        else if (isCombined)
+                        {
+                            task.IsCompleted = false;
+                            task.CompletedAt = null;
+                        }
+                        else if (!isCombined && task.QuantitativeDailyMin.HasValue && (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value)
                         {
                             task.IsCompleted = true;
                             task.CompletedAt = DateTime.Now;
