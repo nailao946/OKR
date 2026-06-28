@@ -36,6 +36,34 @@ namespace ME.Views
             // Apply styles to ListBoxes
             WeekDayListBox.ItemContainerStyle = (Style)FindResource("MacListBoxItemStyle");
             MonthDayListBox.ItemContainerStyle = (Style)FindResource("MacListBoxItemStyle");
+
+            // Load time tags
+            LoadTimeTags();
+        }
+
+        private void LoadTimeTags()
+        {
+            TimeTagCombo.Items.Clear();
+            TimeTagCombo.Items.Add(new ComboBoxItem { Content = "无", Tag = (int?)null, IsSelected = true });
+            var tagRepo = new TimeTagRepository();
+            foreach (var tag in tagRepo.GetAllTags())
+            {
+                Color tagColor;
+                try { tagColor = (Color)ColorConverter.ConvertFromString(tag.Color); }
+                catch { tagColor = Color.FromRgb(128, 128, 128); }
+                var item = new ComboBoxItem();
+                var sp = new StackPanel { Orientation = Orientation.Horizontal };
+                sp.Children.Add(new Border
+                {
+                    Width = 10, Height = 10, CornerRadius = new CornerRadius(5),
+                    Background = new SolidColorBrush(tagColor),
+                    Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center
+                });
+                sp.Children.Add(new TextBlock { Text = tag.Name, FontSize = 13 });
+                item.Content = sp;
+                item.Tag = (int?)tag.Id;
+                TimeTagCombo.Items.Add(item);
+            }
         }
 
         private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -172,6 +200,19 @@ namespace ME.Views
                     CountTowardsParentPanel.Visibility = Visibility.Visible;
                     CountTowardsParentCheck.IsChecked = existingTask.CountTowardsParent;
                 }
+
+                // Load time tag selection
+                if (existingTask.TimeTagId.HasValue)
+                {
+                    foreach (ComboBoxItem item in TimeTagCombo.Items)
+                    {
+                        if (item.Tag is int tagId && tagId == existingTask.TimeTagId.Value)
+                        {
+                            item.IsSelected = true;
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -256,6 +297,10 @@ namespace ME.Views
                 ResultTask.Id = _editTaskId;
                 ResultTask.ParentTaskId = _editParentTaskId;
                 ResultTask.GoalId = _editGoalId;
+                // Preserve original CreatedAt so sorting order doesn't change
+                var original = new TaskRepository().GetTaskById(_editTaskId);
+                if (original != null)
+                    ResultTask.CreatedAt = original.CreatedAt;
             }
             else
             {
@@ -340,6 +385,10 @@ namespace ME.Views
                     ResultTask.QuantitativeDailyMin = dailyMin;
                 else
                     ResultTask.QuantitativeDailyMin = null;
+
+                // Initialize QuantitativeCurrent from start value if not already set
+                if (ResultTask.QuantitativeCurrent == null || ResultTask.QuantitativeCurrent < (ResultTask.QuantitativeStart ?? 0))
+                    ResultTask.QuantitativeCurrent = ResultTask.QuantitativeStart;
             }
 
             // CountTowardsParent for subtasks
@@ -347,6 +396,12 @@ namespace ME.Views
             {
                 ResultTask.CountTowardsParent = CountTowardsParentCheck.IsChecked == true;
             }
+
+            // Time tag association
+            if (TimeTagCombo.SelectedItem is ComboBoxItem tagItem && tagItem.Tag is int selectedTagId)
+                ResultTask.TimeTagId = selectedTagId;
+            else
+                ResultTask.TimeTagId = null;
 
             DialogResult = true;
             Close();

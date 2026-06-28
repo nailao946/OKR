@@ -9,6 +9,7 @@ using System.Windows.Media.Animation;
 using ME.Data;
 using ME.Models;
 using ME.Services;
+using ME.Core;
 
 namespace ME.Views
 {
@@ -25,6 +26,13 @@ namespace ME.Views
             LoadCalendar();
             ThemeService.ThemeChanged += OnThemeChanged;
             this.Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
+            EventAggregator.Instance.Subscribe<string>(OnGlobalEvent);
+        }
+
+        private void OnGlobalEvent(string message)
+        {
+            if (message == "TaskCompleted")
+                Dispatcher.BeginInvoke(new Action(() => { if (this.IsVisible) LoadCalendar(); }));
         }
 
         private void CalendarView_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)

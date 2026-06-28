@@ -136,5 +136,8 @@ namespace ME.Models
 
         private bool _countTowardsParent;
         public bool CountTowardsParent { get => _countTowardsParent; set { _countTowardsParent = value; OnPropertyChanged(); } }
+
+        private int? _timeTagId;
+        public int? TimeTagId { get => _timeTagId; set { _timeTagId = value; OnPropertyChanged(); } }
     }
 }

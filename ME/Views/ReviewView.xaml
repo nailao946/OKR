@@ -17,10 +17,18 @@
                                    Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="WeeklyBtn" Content="本周" Click="Weekly_Click"
-                                Style="{StaticResource PrimaryButtonStyle}" Padding="20,6" Margin="0,0,6,0" />
-                        <Button x:Name="MonthlyBtn" Content="本月" Click="Monthly_Click"
-                                Style="{StaticResource SecondaryButtonStyle}" Padding="20,6" />
+                        <Button x:Name="TodayBtn" Content="今天" Click="PeriodBtn_Click"
+                                Tag="Today"
+                                Style="{StaticResource SecondaryButtonStyle}" Padding="16,6" Margin="0,0,6,0" />
+                        <Button x:Name="WeeklyBtn" Content="本周" Click="PeriodBtn_Click"
+                                Tag="Week"
+                                Style="{StaticResource PrimaryButtonStyle}" Padding="16,6" Margin="0,0,6,0" />
+                        <Button x:Name="MonthlyBtn" Content="本月" Click="PeriodBtn_Click"
+                                Tag="Month"
+                                Style="{StaticResource SecondaryButtonStyle}" Padding="16,6" Margin="0,0,6,0" />
+                        <Button x:Name="AllBtn" Content="全部" Click="PeriodBtn_Click"
+                                Tag="All"
+                                Style="{StaticResource SecondaryButtonStyle}" Padding="16,6" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -95,13 +103,23 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Activity Heatmap -->
+                <!-- Goal Tree (migrated from 目标地图) -->
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="16">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="活动热力图" FontSize="14" FontWeight="Bold"
+                        <TextBlock DockPanel.Dock="Top" Text="目标全局树" FontSize="14" FontWeight="Bold"
                                    Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12" />
-                        <Border x:Name="HeatmapContainer" Background="{DynamicResource BackgroundBrush}"
-                                CornerRadius="8" Padding="8" />
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                            <TreeView x:Name="GoalTreeView" Background="Transparent" BorderThickness="0"
+                                      Foreground="{DynamicResource TextBrush}">
+                                <TreeView.Resources>
+                                    <Style TargetType="TreeViewItem">
+                                        <Setter Property="FontSize" Value="13" />
+                                        <Setter Property="Padding" Value="6,4" />
+                                        <Setter Property="IsExpanded" Value="True" />
+                                    </Style>
+                                </TreeView.Resources>
+                            </TreeView>
+                        </ScrollViewer>
                     </DockPanel>
                 </Border>
 

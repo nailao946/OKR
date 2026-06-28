@@ -262,6 +262,14 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
+
+                    <!-- Time Tag Association -->
+                    <StackPanel Margin="0,0,0,10">
+                        <TextBlock Text="关联计时标签 (可选)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6" />
+                        <ComboBox x:Name="TimeTagCombo" Height="36" FontSize="13" Style="{StaticResource MacComboBoxStyle}">
+                            <ComboBoxItem Content="无" IsSelected="True" />
+                        </ComboBox>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
 

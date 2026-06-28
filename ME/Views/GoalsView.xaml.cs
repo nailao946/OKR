@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -36,6 +37,7 @@ namespace ME.Views
             BuildTagFilter();
             LoadGoalsWithSections();
             EventAggregator.Instance.Subscribe<string>(OnTagChanged);
+            EventAggregator.Instance.Subscribe<string>(OnTaskCompleted);
             ThemeService.ThemeChanged += OnThemeChanged;
             this.Unloaded += (s, e) => ThemeService.ThemeChanged -= OnThemeChanged;
         }
@@ -46,6 +48,14 @@ namespace ME.Views
             {
                 BuildTagFilter();
                 LoadGoalsWithSections();
+            }
+        }
+
+        private void OnTaskCompleted(string message)
+        {
+            if (message == "TaskCompleted")
+            {
+                Dispatcher.BeginInvoke(new Action(() => LoadGoalsWithSections()));
             }
         }
 
@@ -222,6 +232,32 @@ namespace ME.Views
                 var (progress, detail) = taskService.CalcGoalProgress(goal.Id);
                 goal.Progress = progress;
 
+                // Compute completed count and tracking time
+                var taskRepo = new TaskRepository();
+                var allGoalTasks = taskRepo.GetAllTasks().Where(t => t.GoalId == goal.Id && !t.IsDeleted).ToList();
+                int completedCount = 0;
+                double totalTrackMinutes = 0;
+                var timeRecordRepo = new TimeRecordRepository();
+                foreach (var t in allGoalTasks)
+                {
+                    if (IsTaskCompletedForDisplay(t)) completedCount++;
+                    if (t.TimeTagId is int tagId)
+                    {
+                        var allRecords = timeRecordRepo.GetAllRecords();
+                        totalTrackMinutes += allRecords.Where(r => r.TagId == tagId).Sum(r => r.Duration.TotalMinutes);
+                    }
+                }
+                var trackHours = (int)(totalTrackMinutes / 60);
+                var trackMins = (int)(totalTrackMinutes % 60);
+
+                // Remaining days
+                string remainStr = "";
+                if (goal.EndDate.HasValue)
+                {
+                    var remain = (goal.EndDate.Value.Date - DateTime.Today).Days;
+                    remainStr = remain >= 0 ? $"剩余{remain}天" : $"已超{-remain}天";
+                }
+
                 var infoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
                 infoPanel.Children.Add(new TextBlock { Text = "进度:", FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
                 infoPanel.Children.Add(new TextBlock
@@ -236,6 +272,21 @@ namespace ME.Views
                         Text = $" ({detail})", FontSize = 10, FontWeight = FontWeights.SemiBold,
                         Foreground = progressColor
                     });
+                }
+                if (!string.IsNullOrEmpty(remainStr))
+                {
+                    var remainColor = remainStr.StartsWith("剩余") ? (SolidColorBrush)FindResource("SecondaryTextBrush")
+                        : new SolidColorBrush(Color.FromRgb(255, 59, 48));
+                    infoPanel.Children.Add(new TextBlock
+                    {
+                        Text = $"  {remainStr}", FontSize = 10,
+                        Foreground = remainColor, Margin = new Thickness(8, 0, 0, 0)
+                    });
+                }
+                infoPanel.Children.Add(new TextBlock { Text = $"  完成{completedCount}次", FontSize = 10, Foreground = progressColor, Margin = new Thickness(8, 0, 0, 0) });
+                if (totalTrackMinutes > 0)
+                {
+                    infoPanel.Children.Add(new TextBlock { Text = $"  计时{trackHours}h{trackMins:D2}m", FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"), Margin = new Thickness(8, 0, 0, 0) });
                 }
                 var timeFrame = goal.TimeFrame == GoalTimeFrame.LongTerm ? "长期" : goal.TimeFrame == GoalTimeFrame.Inspiration ? "灵感" : "短期";
                 infoPanel.Children.Add(new TextBlock { Text = timeFrame, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"), Margin = new Thickness(8, 0, 0, 0) });
@@ -284,31 +335,80 @@ namespace ME.Views
                 card.Child = grid;
                 wrapper.Children.Add(card);
 
-                // Subtasks
-                if (goal.Subtasks != null && goal.Subtasks.Count > 0)
+                // Active subtasks
+                var activeTasks = goal.Subtasks?.Where(t => !IsTaskCompletedForDisplay(t)).ToList() ?? new List<TaskItem>();
+                var completedTasks = goal.Subtasks?.Where(t => IsTaskCompletedForDisplay(t)).ToList() ?? new List<TaskItem>();
+
+                if (activeTasks.Count > 0)
                 {
-                    var subtaskExpander = new Expander
+                    var activeExpander = new Expander
                     {
                         IsExpanded = true,
                         Margin = new Thickness(24, 0, 0, 0),
                         Header = new TextBlock
                         {
-                            Text = $"子任务 ({goal.Subtasks.Count})",
+                            Text = $"进行中 ({activeTasks.Count})",
                             FontSize = 11,
                             Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush")
                         }
                     };
-                    var subtaskPanel = new StackPanel();
-                    foreach (var sub in goal.Subtasks)
+                    var activePanel = new StackPanel();
+                    foreach (var sub in activeTasks)
                     {
-                        subtaskPanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor));
+                        activePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor));
                     }
-                    subtaskExpander.Content = subtaskPanel;
-                    wrapper.Children.Add(subtaskExpander);
+                    activeExpander.Content = activePanel;
+                    wrapper.Children.Add(activeExpander);
+                }
+
+                // Completed subtasks
+                if (completedTasks.Count > 0)
+                {
+                    var doneExpander = new Expander
+                    {
+                        IsExpanded = false,
+                        Margin = new Thickness(24, 0, 0, 0),
+                        Header = new TextBlock
+                        {
+                            Text = $"已完成 ({completedTasks.Count})",
+                            FontSize = 11,
+                            Foreground = (SolidColorBrush)FindResource("AccentGreenBrush")
+                        }
+                    };
+                    var donePanel = new StackPanel();
+                    foreach (var sub in completedTasks)
+                    {
+                        donePanel.Children.Add(CreateGoalSubtaskCard(sub, goal.TagColor));
+                    }
+                    doneExpander.Content = donePanel;
+                    wrapper.Children.Add(doneExpander);
                 }
 
                 panel.Children.Add(wrapper);
             }
+        }
+
+        private bool IsTaskCompletedForDisplay(TaskItem task)
+        {
+            if (task.Type == TaskType.Recurring)
+            {
+                var ts = new TaskService();
+                if (task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1)
+                {
+                    var count = ts.GetCustomRecurringCountOnDate(task.Id, DateTime.Today);
+                    return count >= task.RecurringTargetCount.Value;
+                }
+                return ts.IsRecurringTaskCompletedOnDate(task, DateTime.Today);
+            }
+            if (task.Type == TaskType.Quantitative)
+            {
+                if (task.QuantitativeDailyMin.HasValue)
+                    return (task.QuantitativeCurrent ?? 0) >= task.QuantitativeDailyMin.Value;
+                if (task.QuantitativeTarget.HasValue && task.QuantitativeTarget > 0)
+                    return (task.QuantitativeCurrent ?? 0) >= task.QuantitativeTarget.Value;
+                return task.IsCompleted;
+            }
+            return task.IsCompleted;
         }
 
         private Border CreateGoalSubtaskCard(TaskItem task, string tagColor)
@@ -326,6 +426,7 @@ namespace ME.Views
                 : new SolidColorBrush((Color)ColorConverter.ConvertFromString(tagColor));
 
             bool isCustomRecurring = task.Type == TaskType.Recurring && task.RecurringPattern == RecurringPattern.Custom && task.RecurringTargetCount.HasValue && task.RecurringTargetCount > 1;
+            bool isCompletedDisplay = IsTaskCompletedForDisplay(task);
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -340,12 +441,12 @@ namespace ME.Views
                 CornerRadius = isQuant ? new CornerRadius(3) : new CornerRadius(9),
                 BorderThickness = new Thickness(1.5), VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 8, 0), Cursor = Cursors.Hand,
-                Background = isQuant ? progressColor : Brushes.Transparent,
-                BorderBrush = task.IsCompleted ? progressColor : (SolidColorBrush)FindResource("BorderBrush"),
+                Background = isCompletedDisplay ? progressColor : (isQuant ? progressColor : Brushes.Transparent),
+                BorderBrush = isCompletedDisplay ? progressColor : (SolidColorBrush)FindResource("BorderBrush"),
                 Child = new TextBlock
                 {
-                    Text = task.IsCompleted ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{new TaskService().GetCustomRecurringCountOnDate(task.Id, DateTime.Today)}" : "")),
-                    Foreground = Brushes.White, FontSize = task.IsCompleted ? 8 : 10, FontWeight = FontWeights.Bold,
+                    Text = isCompletedDisplay ? "✓" : (isQuant ? "+" : (isCustomRecurring ? $"{new TaskService().GetCustomRecurringCountOnDate(task.Id, DateTime.Today)}" : "")),
+                    Foreground = Brushes.White, FontSize = isCompletedDisplay ? 8 : 10, FontWeight = FontWeights.Bold,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
             };
@@ -359,12 +460,12 @@ namespace ME.Views
             textPanel.Children.Add(new TextBlock
             {
                 Text = task.Title, FontSize = 12,
-                Foreground = task.IsCompleted ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
-                TextDecorations = task.IsCompleted ? TextDecorations.Strikethrough : null
+                Foreground = isCompletedDisplay ? (SolidColorBrush)FindResource("SecondaryTextBrush") : (SolidColorBrush)FindResource("TextBrush"),
+                TextDecorations = isCompletedDisplay ? TextDecorations.Strikethrough : null
             });
 
             // Expired label
-            bool isExpired = !task.IsCompleted && task.EndDate.HasValue && task.EndDate.Value.Date < DateTime.Today;
+            bool isExpired = !isCompletedDisplay && task.EndDate.HasValue && task.EndDate.Value.Date < DateTime.Today;
             if (isExpired)
             {
                 textPanel.Children.Add(new TextBlock
@@ -375,7 +476,7 @@ namespace ME.Views
                 });
             }
 
-            if (!task.IsCompleted)
+            if (!isCompletedDisplay)
             {
                 // Description
                 if (!string.IsNullOrEmpty(task.Description))
@@ -389,10 +490,56 @@ namespace ME.Views
                     });
                 }
 
-                // Info panel: type + deadline
+                // Info panel: type + deadline + time tag
                 var infoPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 0) };
                 var typeText = task.Type == TaskType.Recurring ? "循环" : task.Type == TaskType.Quantitative ? "量化" : "单次";
                 infoPanel.Children.Add(new TextBlock { Text = typeText, FontSize = 10, Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush") });
+
+                // Show time tag if set
+                if (task.TimeTagId.HasValue)
+                {
+                    var tagRepo = new TimeTagRepository();
+                    var tag = tagRepo.GetTagById(task.TimeTagId.Value);
+                    if (tag != null)
+                    {
+                        Color timeTagClr;
+                        try { timeTagClr = (Color)ColorConverter.ConvertFromString(tag.Color); }
+                        catch { timeTagClr = Color.FromRgb(128, 128, 128); }
+                        infoPanel.Children.Add(new Border
+                        {
+                            Width = 6, Height = 6, CornerRadius = new CornerRadius(3),
+                            Background = new SolidColorBrush(timeTagClr),
+                            Margin = new Thickness(6, 0, 4, 0),
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+                        infoPanel.Children.Add(new TextBlock
+                        {
+                            Text = tag.Name, FontSize = 10,
+                            Foreground = new SolidColorBrush(timeTagClr),
+                            Margin = new Thickness(0, 0, 6, 0)
+                        });
+                    }
+                }
+
+                // Show elapsed time for tasks with a time tag
+                if (task.TimeTagId.HasValue)
+                {
+                    var trRepo = new TimeRecordRepository();
+                    var allRecords = trRepo.GetAllRecords();
+                    var tagMins = allRecords.Where(r => r.TagId == task.TimeTagId.Value).Sum(r => r.Duration.TotalMinutes);
+                    if (tagMins > 0)
+                    {
+                        var h = (int)(tagMins / 60);
+                        var m = (int)(tagMins % 60);
+                        infoPanel.Children.Add(new TextBlock
+                        {
+                            Text = $"⌚ {h}h{m:D2}m",
+                            FontSize = 10,
+                            Foreground = (SolidColorBrush)FindResource("SecondaryTextBrush"),
+                            Margin = new Thickness(0, 0, 6, 0)
+                        });
+                    }
+                }
                 if (task.EndDate.HasValue)
                 {
                     var deadlineColor = isExpired 

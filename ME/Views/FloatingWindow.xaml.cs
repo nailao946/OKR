@@ -10,6 +10,7 @@ using System.Windows.Media.Effects;
 using ME.Data;
 using ME.Models;
 using ME.Services;
+using ME.Core;
 
 namespace ME.Views
 {
@@ -670,22 +671,64 @@ namespace ME.Views
 
                 if (cb.IsChecked == true)
                 {
-                    task.IsCompleted = true;
-                    task.CompletedAt = DateTime.Now;
-
-                    // Handle recurring
-                    if (task.Type == TaskType.Recurring)
+                    if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
                     {
-                        _taskService.RecordCustomRecurringCompletion(task.Id, DateTime.Today);
+                        task.QuantitativeCurrent = (task.QuantitativeCurrent ?? 0) + 1;
+                        if (task.QuantitativeTarget.HasValue && task.QuantitativeCurrent >= task.QuantitativeTarget.Value)
+                        {
+                            task.IsCompleted = true;
+                            task.CompletedAt = DateTime.Now;
+                        }
+                        else
+                        {
+                            task.IsCompleted = false;
+                            task.CompletedAt = null;
+                            cb.IsChecked = false;
+                        }
+                    }
+                    else
+                    {
+                        task.IsCompleted = true;
+                        task.CompletedAt = DateTime.Now;
+                        if (task.Type == TaskType.Recurring)
+                        {
+                            _taskService.RecordCustomRecurringCompletion(task.Id, DateTime.Today);
+                        }
                     }
                 }
                 else
                 {
-                    task.IsCompleted = false;
-                    task.CompletedAt = null;
+                    if (task.Type == TaskType.Quantitative && task.QuantitativeMode.HasValue)
+                    {
+                        task.QuantitativeCurrent = Math.Max(0, (task.QuantitativeCurrent ?? 0) - 1);
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
+                    }
+                    else
+                    {
+                        task.IsCompleted = false;
+                        task.CompletedAt = null;
+                    }
                 }
 
                 _taskRepo.UpdateTask(task);
+
+                if (task.GoalId.HasValue)
+                {
+                    var repo2 = new TaskRepository();
+                    var goalRepo = new GoalRepository();
+                    var goal = goalRepo.GetAllGoals().Find(g => g.Id == task.GoalId.Value && !g.IsDeleted);
+                    if (goal != null)
+                    {
+                        var ts = new TaskService();
+                        var (progress, _) = ts.CalcGoalProgress(task.GoalId.Value);
+                        goal.Progress = progress;
+                        goalRepo.UpdateGoal(goal);
+                    }
+                }
+
+                SoundService.PlayCompletionSound();
+                EventAggregator.Instance.Publish("TaskCompleted");
                 LoadTaskList();
             }
         }

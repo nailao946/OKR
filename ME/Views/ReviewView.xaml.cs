@@ -9,12 +9,14 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using ME.Data;
 using ME.Models;
+using ME.Core;
 
 namespace ME.Views
 {
     public partial class ReviewView : UserControl
     {
-        private bool _isWeekly = true;
+        private enum ReviewPeriod { Today, Week, Month, All }
+        private ReviewPeriod _currentPeriod = ReviewPeriod.Week;
         private readonly TaskCompletionRepository _completionRepo;
         private readonly TimeRecordRepository _timeRecordRepo;
         private readonly TimeTagRepository _timeTagRepo;
@@ -27,7 +29,7 @@ namespace ME.Views
             _completionRepo = new TaskCompletionRepository();
             _timeRecordRepo = new TimeRecordRepository();
             _timeTagRepo = new TimeTagRepository();
-            UpdateButtonStyles();
+            UpdatePeriodButtons();
             this.IsVisibleChanged += (s, e) =>
             {
                 if (this.IsVisible)
@@ -40,35 +42,38 @@ namespace ME.Views
             {
                 if (this.IsVisible) DrawLineChart(_lastDailyData);
             };
+            EventAggregator.Instance.Subscribe<string>(OnGlobalEvent);
             LoadData();
         }
 
-        private void Weekly_Click(object sender, RoutedEventArgs e)
+        private void OnGlobalEvent(string message)
         {
-            _isWeekly = true;
-            UpdateButtonStyles();
-            LoadData();
+            if (message == "TaskCompleted")
+                Dispatcher.BeginInvoke(new Action(() => { if (this.IsVisible) { LoadData(); } }));
         }
 
-        private void Monthly_Click(object sender, RoutedEventArgs e)
+        private void PeriodBtn_Click(object sender, RoutedEventArgs e)
         {
-            _isWeekly = false;
-            UpdateButtonStyles();
-            LoadData();
-        }
-
-        private void UpdateButtonStyles()
-        {
-            if (_isWeekly)
+            if (sender is Button btn && btn.Tag is string period)
             {
-                WeeklyBtn.Style = (Style)FindResource("PrimaryButtonStyle");
-                MonthlyBtn.Style = (Style)FindResource("SecondaryButtonStyle");
+                switch (period)
+                {
+                    case "Today": _currentPeriod = ReviewPeriod.Today; break;
+                    case "Week": _currentPeriod = ReviewPeriod.Week; break;
+                    case "Month": _currentPeriod = ReviewPeriod.Month; break;
+                    case "All": _currentPeriod = ReviewPeriod.All; break;
+                }
+                UpdatePeriodButtons();
+                LoadData();
             }
-            else
-            {
-                WeeklyBtn.Style = (Style)FindResource("SecondaryButtonStyle");
-                MonthlyBtn.Style = (Style)FindResource("PrimaryButtonStyle");
-            }
+        }
+
+        private void UpdatePeriodButtons()
+        {
+            TodayBtn.Style = (Style)FindResource(_currentPeriod == ReviewPeriod.Today ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            WeeklyBtn.Style = (Style)FindResource(_currentPeriod == ReviewPeriod.Week ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            MonthlyBtn.Style = (Style)FindResource(_currentPeriod == ReviewPeriod.Month ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+            AllBtn.Style = (Style)FindResource(_currentPeriod == ReviewPeriod.All ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
         }
 
         private void AnimateEntrance()
@@ -96,13 +101,31 @@ namespace ME.Views
             var allTasks = taskRepo.GetAllTasks();
 
             var now = DateTime.Now;
-            var startDate = _isWeekly
-                ? now.Date.AddDays(-(int)now.DayOfWeek)
-                : new DateTime(now.Year, now.Month, 1);
-            var startStr = startDate.ToString("yyyy-MM-dd");
+            DateTime startDate;
+            switch (_currentPeriod)
+            {
+                case ReviewPeriod.Today:
+                    startDate = now.Date;
+                    break;
+                case ReviewPeriod.Week:
+                    startDate = now.Date.AddDays(-(int)now.DayOfWeek);
+                    break;
+                case ReviewPeriod.Month:
+                    startDate = new DateTime(now.Year, now.Month, 1);
+                    break;
+                case ReviewPeriod.All:
+                    startDate = DateTime.MinValue;
+                    break;
+                default:
+                    startDate = now.Date.AddDays(-(int)now.DayOfWeek);
+                    break;
+            }
+            var startStr = startDate == DateTime.MinValue ? "2000-01-01" : startDate.ToString("yyyy-MM-dd");
             var endStr = now.ToString("yyyy-MM-dd");
 
-            DateRangeText.Text = $"{startDate:MM/dd} — {now:MM/dd}";
+            DateRangeText.Text = startDate == DateTime.MinValue
+                ? $"全部 — {now:yyyy/MM/dd}"
+                : $"{startDate:MM/dd} — {now:MM/dd}";
 
             int completed = 0, total = 0;
             var dailyData = new SortedDictionary<string, DailyData>();
@@ -138,7 +161,22 @@ namespace ME.Views
             CompletedCountText.Text = completed.ToString();
 
             // Previous period comparison
-            var prevStart = _isWeekly ? startDate.AddDays(-7) : startDate.AddMonths(-1);
+            DateTime prevStart;
+            switch (_currentPeriod)
+            {
+                case ReviewPeriod.Today:
+                    prevStart = startDate.AddDays(-1);
+                    break;
+                case ReviewPeriod.Week:
+                    prevStart = startDate.AddDays(-7);
+                    break;
+                case ReviewPeriod.Month:
+                    prevStart = startDate.AddMonths(-1);
+                    break;
+                default:
+                    prevStart = startDate;
+                    break;
+            }
             var prevEnd = startDate.AddDays(-1);
             var prevCompletions = allCompletions
                 .Where(c => c.Date.CompareTo(prevStart.ToString("yyyy-MM-dd")) >= 0
@@ -184,8 +222,8 @@ namespace ME.Views
             StreakDaysText.Text = $"{streak}";
             StreakBestText.Text = $"最长 {bestStreak} 天";
 
-            // Activity heatmap
-            BuildHeatmap(dailyData, startDate, now);
+            // Goal tree (replaces heatmap)
+            BuildGoalTreeView();
 
             // Time allocation
             BuildTimeAllocation(timeRecords);
@@ -213,55 +251,139 @@ namespace ME.Views
             RateRing.BeginAnimation(Ellipse.StrokeDashOffsetProperty, anim);
         }
 
-        private void BuildHeatmap(SortedDictionary<string, DailyData> dailyData, DateTime startDate, DateTime now)
+        private void BuildGoalTreeView()
         {
-            HeatmapContainer.Child = null;
+            GoalTreeView.Items.Clear();
+            var goalRepo = new GoalRepository();
+            var taskRepo = new TaskRepository();
+            var tagRepo = new TagRepository();
+            var allGoals = goalRepo.GetAllGoals();
+            var allTasks = taskRepo.GetAllTasks();
+            var allTags = tagRepo.GetAllTags();
 
-            // Show past 30 days as a grid of colored squares
-            var grid = new UniformGrid();
-            grid.Columns = 7; // 7 days per row
-
-            var lookback = _isWeekly ? 28 : 60;
-            var heatmapStart = now.Date.AddDays(-lookback + 1);
-
-            int maxCompleted = 1;
-            for (var d = heatmapStart; d <= now; d = d.AddDays(1))
+            foreach (var goal in allGoals)
             {
-                var key = d.ToString("MM/dd");
-                if (dailyData.ContainsKey(key) && dailyData[key].Completed > maxCompleted)
-                    maxCompleted = dailyData[key].Completed;
-            }
-
-            for (var d = heatmapStart; d <= now; d = d.AddDays(1))
-            {
-                var key = d.ToString("MM/dd");
-                var count = dailyData.ContainsKey(key) ? dailyData[key].Completed : 0;
-                var intensity = maxCompleted > 0 ? (double)count / maxCompleted : 0;
-
-                Color cellColor;
-                if (count == 0)
-                    cellColor = Color.FromArgb(30, 142, 142, 147);
-                else if (intensity < 0.25)
-                    cellColor = Color.FromArgb(80, 52, 199, 89);
-                else if (intensity < 0.5)
-                    cellColor = Color.FromArgb(140, 52, 199, 89);
-                else if (intensity < 0.75)
-                    cellColor = Color.FromArgb(200, 52, 199, 89);
-                else
-                    cellColor = Color.FromRgb(52, 199, 89);
-
-                var cell = new Border
+                if (!goal.ParentId.HasValue)
                 {
-                    Width = 16, Height = 16,
-                    CornerRadius = new CornerRadius(3),
-                    Background = new SolidColorBrush(cellColor),
-                    Margin = new Thickness(1),
-                    ToolTip = $"{d:MM/dd}: {count} 项完成"
-                };
-                grid.Children.Add(cell);
-            }
+                    var goalColor = GetGoalDisplayColor(goal, allTags);
+                    var goalItem = CreateGoalTreeItem(goal, goalColor);
 
-            HeatmapContainer.Child = grid;
+                    foreach (var childGoal in allGoals)
+                    {
+                        if (childGoal.ParentId == goal.Id)
+                        {
+                            var childColor = GetGoalDisplayColor(childGoal, allTags);
+                            var childItem = CreateGoalTreeItem(childGoal, childColor);
+
+                            foreach (var task in allTasks)
+                            {
+                                if (task.GoalId == childGoal.Id && !task.IsDeleted && !task.IsCompleted)
+                                {
+                                    childItem.Items.Add(new TreeViewItem
+                                    {
+                                        Header = $"○ {task.Title}",
+                                        Tag = task,
+                                        Foreground = (SolidColorBrush)FindResource("TextBrush")
+                                    });
+                                }
+                            }
+                            goalItem.Items.Add(childItem);
+                        }
+                    }
+
+                    foreach (var task in allTasks)
+                    {
+                        if (task.GoalId == goal.Id && !task.IsDeleted)
+                        {
+                            var status = task.IsCompleted ? "✓" : "○";
+                            goalItem.Items.Add(new TreeViewItem
+                            {
+                                Header = $"{status} {task.Title}",
+                                Tag = task,
+                                Foreground = (SolidColorBrush)FindResource("TextBrush")
+                            });
+                        }
+                    }
+
+                    GoalTreeView.Items.Add(goalItem);
+                }
+            }
+        }
+
+        private TreeViewItem CreateGoalTreeItem(Goal goal, Color progressColor)
+        {
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
+
+            var circle = new Grid { Width = 16, Height = 16, Margin = new Thickness(0, 0, 6, 0) };
+            var bgCircle = new Ellipse
+            {
+                Width = 16, Height = 16,
+                Stroke = new SolidColorBrush(Color.FromRgb(229, 229, 234)),
+                StrokeThickness = 2, Fill = Brushes.Transparent
+            };
+            circle.Children.Add(bgCircle);
+            if (goal.Progress > 0)
+            {
+                var angle = goal.Progress / 100.0 * 360.0;
+                var radius = 7;
+                var center = new Point(8, 8);
+                var startAngle = -90;
+                var endAngle = startAngle + angle;
+                var startPoint = new Point(
+                    center.X + radius * Math.Cos(startAngle * Math.PI / 180),
+                    center.Y + radius * Math.Sin(startAngle * Math.PI / 180));
+                var endPoint = new Point(
+                    center.X + radius * Math.Cos(endAngle * Math.PI / 180),
+                    center.Y + radius * Math.Sin(endAngle * Math.PI / 180));
+                var fig = new PathFigure { StartPoint = startPoint, IsClosed = false };
+                fig.Segments.Add(new ArcSegment
+                {
+                    Point = endPoint, Size = new Size(radius, radius),
+                    IsLargeArc = angle > 180, SweepDirection = SweepDirection.Clockwise, IsStroked = true
+                });
+                circle.Children.Add(new Path
+                {
+                    Data = new PathGeometry { Figures = { fig } },
+                    Stroke = new SolidColorBrush(progressColor),
+                    StrokeThickness = 2,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Round
+                });
+            }
+            panel.Children.Add(circle);
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"  {goal.Name}  [{goal.Progress:F0}%]",
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (SolidColorBrush)FindResource("TextBrush")
+            });
+
+            return new TreeViewItem { Header = panel, Tag = goal };
+        }
+
+        private Color GetGoalDisplayColor(Goal goal, List<GoalTag> allTags)
+        {
+            if (goal.TagId.HasValue)
+            {
+                var tag = allTags.Find(t => t.Id == goal.TagId.Value);
+                if (tag != null)
+                {
+                    try { return (Color)ColorConverter.ConvertFromString(tag.Color); }
+                    catch { }
+                }
+            }
+            switch (goal.Color)
+            {
+                case GoalColor.Red: return Color.FromRgb(255, 59, 48);
+                case GoalColor.Green: return Color.FromRgb(52, 199, 89);
+                case GoalColor.Blue: return Color.FromRgb(0, 122, 255);
+                case GoalColor.Pink: return Color.FromRgb(255, 45, 85);
+                case GoalColor.Gray: return Color.FromRgb(142, 142, 147);
+                case GoalColor.Yellow: return Color.FromRgb(255, 204, 0);
+                default: return Color.FromRgb(0, 122, 255);
+            }
         }
 
         private void BuildTimeAllocation(List<TimeRecord> records)
